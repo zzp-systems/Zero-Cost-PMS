@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Portal - Z-Bridges PMS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Mobile First -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+</head>
+<body class="bg-slate-100 min-h-screen pb-20">
+
+    <!-- Mobile Header -->
+    <header class="bg-blue-600 text-white p-6 pb-12 shadow-lg">
+        <div class="flex justify-between items-center">
+            <h1 class="font-bold text-lg">My Portal</h1>
+            <button onclick="Auth.logout()" class="text-blue-200 hover:text-white"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+        <div class="mt-6">
+            <h2 class="text-2xl font-bold" id="user-greeting">Hello!</h2>
+            <p class="text-blue-100 text-sm" id="user-role-label">Tenant</p>
+        </div>
+    </header>
+
+    <!-- Main Cards -->
+    <main class="px-4 -mt-8 space-y-4" id="portal-content">
+        <!-- Content injected based on role -->
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="fixed bottom-0 w-full bg-white border-t border-slate-200 flex justify-around py-3 text-slate-400 text-xs font-medium safe-area-pb">
+        <button class="flex flex-col items-center gap-1 text-blue-600">
+            <i class="fas fa-home text-lg"></i> Home
+        </button>
+        <button class="flex flex-col items-center gap-1 hover:text-blue-600">
+            <i class="fas fa-tools text-lg"></i> Requests
+        </button>
+        <button class="flex flex-col items-center gap-1 hover:text-blue-600">
+            <i class="fas fa-wallet text-lg"></i> Pay
+        </button>
+    </nav>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            Auth.guard(); // Any logged in user
+            
+            const user = Auth.currentUser;
+            document.getElementById('user-greeting').innerText = `Hello, ${user.name.split(' ')[0]}`;
+            document.getElementById('user-role-label').innerText = user.role.toUpperCase();
+
+            renderPortal(user.role);
+        });
+
+        function renderPortal(role) {
+            const container = document.getElementById('portal-content');
+            
+            if (role === 'tenant') {
+                container.innerHTML = `
+                    <div class="bg-white p-6 rounded-xl shadow-sm flex justify-between items-center">
+                        <div>
+                            <p class="text-xs text-slate-400 uppercase font-bold">Balance Due</p>
+                            <h3 class="text-3xl font-bold text-slate-800">$0.00</h3>
+                        </div>
+                        <button class="bg-green-500 text-white w-10 h-10 rounded-full shadow-lg shadow-green-500/30"><i class="fas fa-check"></i></button>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm">
+                        <h3 class="font-bold text-slate-800 mb-4">Active Lease</h3>
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400"><i class="fas fa-home"></i></div>
+                            <div>
+                                <p class="font-bold text-sm">Sunset Villa Unit A</p>
+                                <p class="text-xs text-slate-500">Ends: Dec 2025</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (role === 'owner') {
+                container.innerHTML = `
+                    <div class="bg-white p-6 rounded-xl shadow-sm">
+                        <p class="text-xs text-slate-400 uppercase font-bold">Net Income (MTD)</p>
+                        <h3 class="text-3xl font-bold text-blue-600">$2,400</h3>
+                    </div>
+                    <!-- Owner specific widgets -->
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
