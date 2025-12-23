@@ -3,1032 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Siklab Enterprise PMS - Zero Cost</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <title>Welcome Home | Z-Bridges Properties</title>
     
-    <!-- FIREBASE SDKs (Compat build for easy single-file integration) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-
+    <!-- Styles & Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
-        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); }
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        .toggle-checkbox:checked { right: 0; border-color: #68D391; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #68D391; }
-        
-        /* Status Badges */
-        .status-badge { @apply px-2 py-1 rounded text-xs font-bold uppercase tracking-wide; }
-        .status-new { @apply bg-blue-100 text-blue-700; }
-        .status-open { @apply bg-red-100 text-red-700; }
-        .status-closed { @apply bg-slate-100 text-slate-500; }
     </style>
+
+    <!-- Firebase SDKs (Compat - Required for js/app.js connection) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-50 font-sans text-slate-800">
 
-    <!-- LOGIN / PORTAL SELECTOR SCREEN -->
-    <div id="auth-screen" class="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col md:flex-row fade-in">
-            <div class="md:w-1/2 bg-blue-600 p-10 text-white flex flex-col justify-center relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-                <h1 class="text-4xl font-bold mb-4 relative z-10">Siklab PMS</h1>
-                <p class="text-blue-100 text-lg relative z-10">The Open Source Operating System for Real Estate.</p>
-                <div class="mt-8 space-y-2 relative z-10">
-                    <div class="flex items-center gap-3"><i class="fas fa-check-circle text-blue-300"></i> <span>Zero-Cost Architecture</span></div>
-                    <div class="flex items-center gap-3"><i class="fas fa-check-circle text-blue-300"></i> <span>Multi-Portal Access</span></div>
-                    <div class="flex items-center gap-3"><i class="fas fa-check-circle text-blue-300"></i> <span>Firebase + GAS Integrated</span></div>
-                </div>
-            </div>
-            <div class="md:w-1/2 p-10 flex flex-col justify-center">
-                <h2 class="text-2xl font-bold text-slate-800 mb-6">Select Portal Simulation</h2>
-                <div class="grid grid-cols-1 gap-4">
-                    <button onclick="Auth.login('admin')" class="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition group text-left">
-                        <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-500 group-hover:text-white transition"><i class="fas fa-user-tie text-xl"></i></div>
-                        <div>
-                            <h3 class="font-bold text-slate-700">Property Manager (Admin)</h3>
-                            <p class="text-xs text-slate-500">Full access to CRM, Finance, Ops</p>
-                        </div>
-                    </button>
-                    <button onclick="Auth.login('tenant')" class="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-green-500 hover:bg-green-50 transition group text-left">
-                        <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-green-500 group-hover:text-white transition"><i class="fas fa-home text-xl"></i></div>
-                        <div>
-                            <h3 class="font-bold text-slate-700">Tenant Portal</h3>
-                            <p class="text-xs text-slate-500">Pay rent, view lease, requests</p>
-                        </div>
-                    </button>
-                    <button onclick="Auth.login('owner')" class="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-purple-500 hover:bg-purple-50 transition group text-left">
-                        <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-purple-500 group-hover:text-white transition"><i class="fas fa-chart-line text-xl"></i></div>
-                        <div>
-                            <h3 class="font-bold text-slate-700">Owner Portal</h3>
-                            <p class="text-xs text-slate-500">View ROI, approve expenses</p>
-                        </div>
-                    </button>
-                    <button onclick="Auth.login('vendor')" class="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-orange-500 hover:bg-orange-50 transition group text-left">
-                        <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-orange-500 group-hover:text-white transition"><i class="fas fa-hard-hat text-xl"></i></div>
-                        <div>
-                            <h3 class="font-bold text-slate-700">Vendor Portal</h3>
-                            <p class="text-xs text-slate-500">Work orders, invoicing</p>
-                        </div>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- APP SHELL (Hidden until login) -->
-    <div id="app-shell" class="flex h-screen overflow-hidden hidden">
-        <!-- Dynamic Sidebar -->
-        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-20 transition-all duration-300 hidden md:flex" id="sidebar">
+    <!-- Navigation Bar -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex justify-between items-center">
             <!-- Brand -->
-            <div class="h-16 flex items-center gap-3 px-6 border-b border-slate-800 bg-slate-950">
-                <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20">S</div>
-                <span class="font-bold text-white tracking-tight">Siklab PMS</span>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">Z</div>
+                <span class="font-bold text-xl text-slate-800 tracking-tight">Z-Bridges<span class="text-blue-600">.</span></span>
             </div>
 
-            <!-- Nav Menu (Injected via JS) -->
-            <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1" id="nav-menu"></nav>
-
-            <!-- User Profile -->
-            <div class="p-4 border-t border-slate-800 bg-slate-950">
-                <div class="flex items-center gap-3 px-2">
-                    <div class="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white shadow-inner" id="user-avatar">JD</div>
-                    <div class="overflow-hidden">
-                        <p class="text-sm font-medium text-white truncate" id="user-name">John Doe</p>
-                        <p class="text-[10px] uppercase tracking-wider text-slate-500 truncate" id="user-role">Administrator</p>
-                    </div>
-                    <button onclick="Auth.logout()" class="ml-auto text-slate-500 hover:text-white transition"><i class="fas fa-sign-out-alt"></i></button>
-                </div>
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex items-center gap-8 font-medium text-slate-500">
+                <a href="#listings" class="hover:text-blue-600 transition">Rentals</a>
+                <a href="#owners" class="hover:text-blue-600 transition">For Owners</a>
+                <a href="#about" class="hover:text-blue-600 transition">About Us</a>
             </div>
-        </aside>
 
-        <!-- Main Content -->
-        <main class="flex-1 flex flex-col relative bg-slate-50">
-            <!-- Mobile Header -->
-            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:hidden z-10 sticky top-0">
-                <div class="flex items-center gap-3">
-                    <button onclick="toggleSidebar()" class="text-slate-500"><i class="fas fa-bars text-xl"></i></button>
-                    <span class="font-bold text-slate-800">Siklab PMS</span>
-                </div>
-                <button onclick="Auth.logout()" class="text-slate-500"><i class="fas fa-sign-out-alt"></i></button>
-            </header>
-
-            <!-- Top Bar (Desktop) -->
-            <header class="h-16 bg-white border-b border-slate-200 hidden md:flex items-center justify-between px-8 z-10">
-                <div class="flex items-center gap-4 text-slate-400 text-sm">
-                    <span id="breadcrumb-title" class="font-medium text-slate-800 text-lg">Dashboard</span>
-                    <!-- Connectivity Status Indicator -->
-                    <span id="db-status" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-500 border border-slate-200">Local Mode</span>
-                </div>
-                <div class="flex items-center gap-4">
-                    <button onclick="router('kb')" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 transition" title="Knowledge Base"><i class="far fa-question-circle"></i></button>
-                    <button class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 transition relative">
-                        <i class="far fa-bell"></i>
-                        <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                    </button>
-                </div>
-            </header>
-
-            <!-- Viewport -->
-            <div id="app-content" class="flex-1 overflow-y-auto p-4 md:p-8 relative scroll-smooth">
-                <!-- Views injected here -->
+            <!-- Auth Action -->
+            <div class="flex items-center gap-4">
+                <a href="login.html" class="px-5 py-2.5 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition shadow-md">
+                    Portal Login
+                </a>
             </div>
-        </main>
-    </div>
-
-    <!-- TOAST NOTIFICATION -->
-    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 transition-all duration-300 opacity-0">
-        <div class="bg-slate-800 text-white px-6 py-3 rounded-lg shadow-2xl flex items-center gap-3">
-            <i class="fas fa-info-circle text-blue-400"></i>
-            <span id="toast-message">Notification</span>
         </div>
-    </div>
+    </nav>
 
-    <!-- UNIVERSAL MODAL -->
-    <div id="modal-container" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 fade-in p-4">
-        <!-- Content injected here -->
-    </div>
+    <!-- Hero Section -->
+    <header class="relative bg-slate-900 text-white py-32 lg:py-48 overflow-hidden">
+        <!-- Background Image with Overlay -->
+        <div class="absolute inset-0 opacity-30 bg-[url('https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80')] bg-cover bg-center"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+        
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10">
+            <h1 class="text-5xl md:text-7xl font-bold mb-6 tracking-tight leading-tight">
+                Find Your <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Sanctuary</span>.
+            </h1>
+            <p class="text-xl md:text-2xl text-slate-300 mb-10 max-w-2xl mx-auto font-light">
+                Modern living spaces managed with precision and care. Zero hassle, total comfort.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="#listings" class="px-8 py-4 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 transition shadow-lg shadow-blue-500/30">
+                    Browse Listings
+                </a>
+                <button onclick="alert('Owner inquiry feature coming soon!')" class="px-8 py-4 bg-white/10 backdrop-blur-sm text-white border border-white/20 rounded-xl font-bold text-lg hover:bg-white/20 transition">
+                    List Your Property
+                </button>
+            </div>
+        </div>
+    </header>
 
+    <!-- Listings Feed (ILS Module) -->
+    <section id="listings" class="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
+            <div>
+                <span class="text-blue-600 font-bold uppercase tracking-wider text-sm">Now Renting</span>
+                <h2 class="text-4xl font-bold text-slate-900 mt-2">Available Properties</h2>
+                <p class="text-slate-500 mt-2 text-lg">Freshly listed homes curated for quality living.</p>
+            </div>
+            <!-- Filter Controls (Visual Only for Prototype) -->
+            <div class="flex gap-2">
+                <select class="bg-white border border-slate-200 text-slate-600 rounded-lg px-4 py-2 outline-none focus:border-blue-500">
+                    <option>All Types</option>
+                    <option>Apartment</option>
+                    <option>House</option>
+                </select>
+                <select class="bg-white border border-slate-200 text-slate-600 rounded-lg px-4 py-2 outline-none focus:border-blue-500">
+                    <option>Any Price</option>
+                    <option>Under $1500</option>
+                    <option>Under $2500</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Dynamic Listing Container -->
+        <div id="listings-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Loading State -->
+            <div class="col-span-1 md:col-span-2 lg:col-span-3 py-20 text-center">
+                <i class="fas fa-circle-notch fa-spin text-4xl text-blue-200 mb-4"></i>
+                <p class="text-slate-400">Loading verified listings from Z-Bridges Network...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Lead Capture Section (CRM Integration) -->
+    <section class="bg-blue-50 py-24 relative overflow-hidden">
+        <!-- Decorative blobs -->
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50"></div>
+        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-indigo-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50"></div>
+
+        <div class="relative max-w-3xl mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold text-slate-900 mb-4">Don't see what you're looking for?</h2>
+            <p class="text-slate-600 mb-10 text-lg">Join our priority waiting list. We'll notify you instantly when a property matches your criteria.</p>
+            
+            <form onsubmit="captureLead(event)" class="bg-white p-3 rounded-2xl shadow-xl flex flex-col sm:flex-row gap-2">
+                <input type="email" id="leadEmail" placeholder="Enter your email address" class="flex-1 px-6 py-4 rounded-xl outline-none text-slate-700 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-100 transition" required>
+                <button type="submit" class="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 whitespace-nowrap">
+                    Notify Me
+                </button>
+            </form>
+            <p class="text-xs text-slate-400 mt-4"><i class="fas fa-lock"></i> Your data is secure. We never spam.</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-16 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            <div class="col-span-1 md:col-span-2">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">Z</div>
+                    <span class="font-bold text-xl text-white">Z-Bridges Properties</span>
+                </div>
+                <p class="text-sm text-slate-500 max-w-xs leading-relaxed">
+                    Redefining property management with zero-cost architecture and AI-driven efficiency. Bridging owners and tenants seamlessly.
+                </p>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-4">Company</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#" class="hover:text-blue-400 transition">About Us</a></li>
+                    <li><a href="#" class="hover:text-blue-400 transition">Careers</a></li>
+                    <li><a href="#" class="hover:text-blue-400 transition">Privacy Policy</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-4">Connect</h4>
+                <div class="flex gap-4">
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 hover:text-white transition"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-400 hover:text-white transition"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600 hover:text-white transition"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="text-center text-xs text-slate-600 pt-8 border-t border-slate-800">
+            &copy; 2025 Z-Bridges Properties. Powered by Zero-Cost Architecture.
+        </div>
+    </footer>
+
+    <!-- Logic Connection -->
+    <script src="js/app.js"></script>
     <script>
-        // --- 0. CLOUD & HYBRID INFRASTRUCTURE ---
-        const Infrastructure = {
-            mode: 'local', // 'local' or 'cloud'
-            db: null,
-            gasUrl: localStorage.getItem('siklabGAS') || '', // Google Apps Script URL
+        // --- PAGE LOGIC ---
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Wait for Store to initialize (Local or Cloud)
+            // In a real scenario, we might use a callback, but for this prototype, a short timeout or direct access works if app.js runs first.
+            // app.js init() runs on DOMContentLoaded as well, so we wait a tick.
+            setTimeout(loadListings, 500); 
+        });
 
-            init() {
-                // Check if Firebase Config exists in LocalStorage
-                const fbConfig = localStorage.getItem('siklabFirebaseConfig');
-                if(fbConfig) {
-                    try {
-                        const config = JSON.parse(fbConfig);
-                        if (!firebase.apps.length) {
-                            firebase.initializeApp(config);
-                            this.db = firebase.firestore();
-                            this.mode = 'cloud';
-                            console.log("Siklab: Firebase Connected");
-                            this.updateStatusIndicator();
-                        }
-                    } catch(e) {
-                        console.error("Firebase Init Failed:", e);
-                        UI.toast("Firebase Config Error. Reverting to Local.");
-                    }
-                }
-                this.updateStatusIndicator();
-            },
-
-            updateStatusIndicator() {
-                const badge = document.getElementById('db-status');
-                if(this.mode === 'cloud') {
-                    badge.innerHTML = '<i class="fas fa-cloud"></i> Firebase Live';
-                    badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-green-100 text-green-700 border border-green-200";
-                } else {
-                    badge.innerHTML = '<i class="fas fa-hdd"></i> Local Storage';
-                    badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-500 border border-slate-200";
-                }
-            },
-
-            // Save Firebase Config from UI
-            saveCloudConfig(configStr) {
-                localStorage.setItem('siklabFirebaseConfig', configStr);
-                location.reload(); // Reload to init Firebase
-            },
-
-            // Save GAS URL
-            saveAutomationConfig(url) {
-                this.gasUrl = url;
-                localStorage.setItem('siklabGAS', url);
-                UI.toast("Automation Hook Saved!");
-            },
-
-            // Disconnect
-            reset() {
-                localStorage.removeItem('siklabFirebaseConfig');
-                location.reload();
-            }
-        };
-
-
-        // --- 1. CORE DATA STORE (Hybrid Logic) ---
-        const Store = {
-            data: {
-                // Initial Seed Data (Only used if LocalStorage is empty)
-                properties: [
-                    { id: 1, name: 'Sunset Villa Unit A', address: '123 Sunset Blvd', type: 'Apartment', rent: 1200, status: 'Occupied', ownerId: 101 },
-                    { id: 2, name: 'Oak Street House', address: '1024 Oak St', type: 'House', rent: 2400, status: 'Vacant', ownerId: 102 },
-                    { id: 3, name: 'TechHub Office 5', address: '500 Main St', type: 'Commercial', rent: 4500, status: 'Occupied', ownerId: 101 }
-                ],
-                users: [
-                    { id: 1, name: 'Admin User', role: 'admin', email: 'admin@siklab.com' },
-                    { id: 2, name: 'Alice Tenant', role: 'tenant', email: 'alice@mail.com', propertyId: 1 },
-                    { id: 3, name: 'Bob Owner', role: 'owner', email: 'bob@investor.com', properties: [1, 3] },
-                    { id: 4, name: 'FixIt Vendor', role: 'vendor', email: 'fix@repair.com', skill: 'Plumbing' }
-                ],
-                leads: [],
-                tickets: [],
-                ledger: [],
-                kb: [
-                    { id: 1, title: 'How to Pay Rent Online', category: 'Tenant', content: 'Go to the Finance tab and click Pay Now...' },
-                    { id: 2, title: 'Emergency Maintenance Protocols', category: 'Employee', content: 'If flooding occurs, immediately call...' },
-                    { id: 3, title: 'Vendor Invoice Submission', category: 'Vendor', content: 'Upload PDFs only...' }
-                ],
-                listings: []
-            },
-            
-            async init() {
-                Infrastructure.init();
-                
-                if (Infrastructure.mode === 'local') {
-                    const stored = localStorage.getItem('siklabERP');
-                    if (stored) this.data = JSON.parse(stored);
-                    else this.saveLocal();
-                } else {
-                    // Firebase: Listen to collections (Simplified for demo - fetching all)
-                    // In a real app, you would set up real-time listeners (onSnapshot)
-                    await this.fetchFromCloud();
-                }
-            },
-
-            saveLocal() {
-                localStorage.setItem('siklabERP', JSON.stringify(this.data));
-            },
-
-            async fetchFromCloud() {
-                // Mocking fetch logic for demo structure - in production, fetch each collection
-                // For this single-file prototype, we will pull specific collections
-                // Note: Security rules would normally protect this
-                console.log("Fetching from Cloud..."); 
-                // Actual Firestore implementation would go here:
-                // const snapshot = await Infrastructure.db.collection('properties').get();
-                // this.data.properties = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
-            },
-
-            // CRUD Helpers (Hybrid)
-            async add(collection, item) {
-                item.id = Date.now(); // Simple ID generation
-                
-                if(Infrastructure.mode === 'local') {
-                    if(!this.data[collection]) this.data[collection] = [];
-                    this.data[collection].push(item);
-                    this.saveLocal();
-                } else {
-                    // Cloud Add
-                    try {
-                        await Infrastructure.db.collection(collection).add(item);
-                        // Also update local cache for immediate UI feedback
-                        if(!this.data[collection]) this.data[collection] = [];
-                        this.data[collection].push(item); 
-                        UI.toast(`Saved to Cloud: ${collection}`);
-                    } catch(e) {
-                        UI.toast("Cloud Error: " + e.message);
-                    }
-                }
-                
-                Workflow.trigger(collection, item); // Trigger Automation
-                return item;
-            },
-
-            async update(collection, id, updates) {
-                // Logic for local update
-                const idx = this.data[collection].findIndex(i => i.id === id);
-                if(idx > -1) {
-                    this.data[collection][idx] = { ...this.data[collection][idx], ...updates };
-                    if(Infrastructure.mode === 'local') this.saveLocal();
-                }
-            }
-        };
-
-        // --- 2. AUTH & PORTAL SYSTEM ---
-        const Auth = {
-            currentUser: null,
-            
-            login(role) {
-                // Simulate login based on role
-                const userMap = {
-                    'admin': Store.data.users[0],
-                    'tenant': Store.data.users[1],
-                    'owner': Store.data.users[2],
-                    'vendor': Store.data.users[3]
-                };
-                this.currentUser = userMap[role];
-                
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('app-shell').classList.remove('hidden');
-                
-                // Update UI Profile
-                document.getElementById('user-name').innerText = this.currentUser.name;
-                document.getElementById('user-role').innerText = this.currentUser.role.toUpperCase();
-                document.getElementById('user-avatar').innerText = this.currentUser.name.match(/\b(\w)/g).join('');
-
-                Navigation.build(this.currentUser.role);
-            },
-            logout() {
-                this.currentUser = null;
-                document.getElementById('app-shell').classList.add('hidden');
-                document.getElementById('auth-screen').classList.remove('hidden');
-                document.getElementById('app-content').innerHTML = '';
-            }
-        };
-
-        // --- 3. NAVIGATION GENERATOR (Role-Based) ---
-        const Navigation = {
-            build(role) {
-                const nav = document.getElementById('nav-menu');
-                nav.innerHTML = '';
-                
-                const menuItems = {
-                    admin: [
-                        { id: 'dashboard', icon: 'fa-chart-pie', label: 'Dashboard' },
-                        { id: 'properties', icon: 'fa-building', label: 'Properties' },
-                        { id: 'crm', icon: 'fa-users', label: 'CRM & Leads' },
-                        { id: 'marketing', icon: 'fa-bullhorn', label: 'Marketing / ILS' },
-                        { id: 'maintenance', icon: 'fa-tools', label: 'Maintenance' },
-                        { id: 'finance', icon: 'fa-wallet', label: 'Bookkeeping' },
-                        { id: 'kb', icon: 'fa-book', label: 'Knowledge Base' },
-                        { id: 'automation', icon: 'fa-robot', label: 'Automations' },
-                        { id: 'system', icon: 'fa-server', label: 'System & Cloud' } // NEW
-                    ],
-                    tenant: [
-                        { id: 'dashboard', icon: 'fa-home', label: 'My Home' },
-                        { id: 'maintenance', icon: 'fa-tools', label: 'Request Repair' },
-                        { id: 'finance', icon: 'fa-credit-card', label: 'Payments' },
-                        { id: 'kb', icon: 'fa-question-circle', label: 'Help Center' }
-                    ],
-                    owner: [
-                        { id: 'dashboard', icon: 'fa-chart-line', label: 'Performance' },
-                        { id: 'properties', icon: 'fa-building', label: 'My Properties' },
-                        { id: 'finance', icon: 'fa-file-invoice-dollar', label: 'Financials' },
-                        { id: 'maintenance', icon: 'fa-hard-hat', label: 'Approvals' }
-                    ],
-                    vendor: [
-                        { id: 'dashboard', icon: 'fa-clipboard-list', label: 'Work Orders' },
-                        { id: 'finance', icon: 'fa-file-invoice', label: 'Invoices' },
-                        { id: 'kb', icon: 'fa-book', label: 'Vendor Guide' }
-                    ]
-                };
-
-                const items = menuItems[role] || menuItems['tenant'];
-                items.forEach(item => {
-                    const btn = document.createElement('button');
-                    btn.onclick = () => router(item.id);
-                    btn.className = `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors group mb-1`;
-                    btn.dataset.target = item.id;
-                    btn.innerHTML = `
-                        <i class="fas ${item.icon} w-5 text-center group-hover:text-blue-400 transition-colors"></i>
-                        <span class="font-medium text-sm">${item.label}</span>
-                    `;
-                    nav.appendChild(btn);
-                });
-                
-                // Load default view
-                router(items[0].id);
-            }
-        };
-
-        // --- 4. WORKFLOW AUTOMATION ENGINE (Updated with GAS Integration) ---
-        const Workflow = {
-            async trigger(event, payload) {
-                console.log(`Workflow Triggered: ${event}`, payload);
-                
-                // INTERNAL RULES
-                if(event === 'tickets' && payload.status === 'Open') {
-                    UI.toast(`New Ticket Created: ${payload.title}`);
-                }
-                
-                // EXTERNAL AUTOMATION (Google Apps Script)
-                // If a GAS URL is configured, we send the data there via POST
-                if (Infrastructure.gasUrl && (event === 'leads' || event === 'tickets')) {
-                    try {
-                        // Note: Browsers often block CORS from GAS. 
-                        // In production, use 'no-cors' or a proxy. For zero-cost, 'no-cors' works for fire-and-forget.
-                        await fetch(Infrastructure.gasUrl, {
-                            method: 'POST',
-                            mode: 'no-cors', 
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ type: event, data: payload })
-                        });
-                        UI.toast("External Automation Triggered (GAS)");
-                    } catch(e) {
-                        console.warn("Automation Failed:", e);
-                    }
-                }
-            }
-        };
-
-        // --- 5. UI UTILITIES ---
-        const UI = {
-            toast(msg) {
-                const t = document.getElementById('toast');
-                document.getElementById('toast-message').innerText = msg;
-                t.classList.remove('translate-y-24', 'opacity-0');
-                setTimeout(() => t.classList.add('translate-y-24', 'opacity-0'), 3000);
-            },
-            modal(html) {
-                const c = document.getElementById('modal-container');
-                c.innerHTML = html;
-                c.classList.remove('hidden');
-                c.classList.add('flex');
-            },
-            closeModal() {
-                const c = document.getElementById('modal-container');
-                c.classList.add('hidden');
-                c.classList.remove('flex');
-            }
-        };
-
-        // --- 6. ROUTER & VIEWS ---
-        function router(view) {
-            // Update Sidebar Active State
-            document.querySelectorAll('#nav-menu button').forEach(b => {
-                if(b.dataset.target === view) b.classList.add('bg-slate-800', 'text-white');
-                else b.classList.remove('bg-slate-800', 'text-white');
-            });
-
-            document.getElementById('breadcrumb-title').innerText = view.charAt(0).toUpperCase() + view.slice(1);
-            const container = document.getElementById('app-content');
-            container.innerHTML = '';
-            
-            // Route Handler
-            switch(view) {
-                case 'dashboard': renderDashboard(container); break;
-                case 'crm': renderCRM(container); break;
-                case 'marketing': renderMarketing(container); break;
-                case 'properties': renderProperties(container); break;
-                case 'maintenance': renderMaintenance(container); break;
-                case 'finance': renderFinance(container); break;
-                case 'kb': renderKB(container); break;
-                case 'automation': renderAutomation(container); break;
-                case 'system': renderSystem(container); break; // NEW
-                default: container.innerHTML = `<div class="p-10 text-center text-slate-400">View under construction: ${view}</div>`;
-            }
-        }
-
-        // --- VIEW RENDERERS ---
-
-        function renderDashboard(el) {
-            const role = Auth.currentUser.role;
-            let html = `<div class="grid grid-cols-1 md:grid-cols-3 gap-6 fade-in">`;
-            
-            if(role === 'admin') {
-                const leads = Store.data.leads ? Store.data.leads.length : 0;
-                const tickets = Store.data.tickets ? Store.data.tickets.filter(t => t.status === 'Open').length : 0;
-                // Calculate Revenue
-                const revenue = Store.data.ledger ? Store.data.ledger.filter(l => l.type === 'Credit').reduce((a,b) => a + b.amount, 0) : 0;
-
-                html += `
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <p class="text-xs font-bold text-slate-400 uppercase">Active Leads</p>
-                        <h3 class="text-3xl font-bold text-slate-800 mt-2">${leads}</h3>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <p class="text-xs font-bold text-slate-400 uppercase">Open Tickets</p>
-                        <h3 class="text-3xl font-bold text-red-600 mt-2">${tickets}</h3>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <p class="text-xs font-bold text-slate-400 uppercase">Revenue (Total)</p>
-                        <h3 class="text-3xl font-bold text-green-600 mt-2">$${revenue.toLocaleString()}</h3>
-                    </div>
-                `;
-            } else if (role === 'tenant') {
-                html += `
-                    <div class="col-span-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-8 text-white shadow-lg mb-6">
-                        <h2 class="text-2xl font-bold mb-2">Welcome Home, ${Auth.currentUser.name}!</h2>
-                        <p class="opacity-90">Current Balance: <span class="font-bold">$0.00</span></p>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-blue-500 transition" onclick="router('maintenance')">
-                        <i class="fas fa-tools text-3xl text-orange-500 mb-4"></i>
-                        <h3 class="font-bold">Request Repair</h3>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-blue-500 transition" onclick="router('finance')">
-                        <i class="fas fa-receipt text-3xl text-green-500 mb-4"></i>
-                        <h3 class="font-bold">Pay Rent</h3>
-                    </div>
-                `;
-            } else if (role === 'owner') {
-                 html += `
-                    <div class="col-span-3 bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6">
-                        <h3 class="font-bold text-slate-700 mb-4">Portfolio Performance</h3>
-                        <canvas id="ownerChart" height="100"></canvas>
-                    </div>
-                `;
-                setTimeout(() => {
-                    new Chart(document.getElementById('ownerChart'), {
-                        type: 'bar',
-                        data: { labels: ['Jan','Feb','Mar'], datasets: [{ label: 'Net Income', data: [2500, 2800, 2400], backgroundColor: '#4f46e5' }] }
-                    });
-                }, 100);
-            }
-            
-            html += `</div>`;
-            el.innerHTML = html;
-        }
-
-        function renderCRM(el) {
-            const leads = Store.data.leads || [];
-            el.innerHTML = `
-                <div class="flex justify-between items-center mb-6 fade-in">
-                    <h2 class="text-xl font-bold text-slate-800">Pipeline</h2>
-                    <button onclick="addLeadModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">Add Lead</button>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden fade-in">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-50 border-b border-slate-200">
-                            <tr><th class="p-4">Name</th><th class="p-4">Type</th><th class="p-4">Status</th><th class="p-4">Note</th><th class="p-4">Action</th></tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            ${leads.map(l => `
-                                <tr class="hover:bg-slate-50">
-                                    <td class="p-4 font-medium">${l.name}<br><span class="text-xs text-slate-400">${l.email}</span></td>
-                                    <td class="p-4"><span class="bg-slate-100 px-2 py-1 rounded text-xs">${l.type}</span></td>
-                                    <td class="p-4"><span class="text-blue-600 font-bold text-xs uppercase">${l.status}</span></td>
-                                    <td class="p-4 text-slate-500">${l.note}</td>
-                                    <td class="p-4">
-                                        <button class="text-slate-400 hover:text-blue-600"><i class="fas fa-envelope"></i></button>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
-
-        function renderMarketing(el) {
+        function loadListings() {
+            const container = document.getElementById('listings-container');
+            // Pull listings from the Shared Store (populated by Admin in manager.html)
             const listings = Store.data.listings || [];
-            el.innerHTML = `
-                <div class="flex justify-between items-center mb-6 fade-in">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-800">Marketing & ILS</h2>
-                        <p class="text-sm text-slate-500">Manage listings and syndicate to Zillow/Trulia (Simulated)</p>
-                    </div>
-                    <button onclick="addListingModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 shadow-lg shadow-green-500/30 flex items-center gap-2">
-                        <i class="fas fa-plus"></i> Create Listing
-                    </button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 fade-in">
-                    ${listings.map(l => `
-                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition">
-                            <div class="h-48 bg-slate-200 relative">
-                                <span class="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded shadow">PUBLISHED</span>
-                                <div class="absolute inset-0 flex items-center justify-center text-slate-400"><i class="fas fa-image text-4xl"></i></div>
-                                <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/50 to-transparent p-4">
-                                    <h3 class="font-bold text-white text-lg drop-shadow-md">${l.headline}</h3>
-                                </div>
-                            </div>
-                            <div class="p-5 flex-1 flex flex-col">
-                                <div class="flex justify-between items-center mb-3">
-                                    <span class="font-bold text-blue-600 text-lg">$${l.price}</span>
-                                    <div class="flex gap-2">
-                                        <i class="fab fa-houzz text-slate-400" title="Syndicated to Housing Networks"></i>
-                                        <i class="fas fa-home text-slate-400" title="Syndicated to ILS"></i>
-                                    </div>
-                                </div>
-                                <p class="text-sm text-slate-500 mb-4 flex-1">${l.desc}</p>
-                                <div class="flex gap-4 text-xs font-medium text-slate-500 border-t pt-4">
-                                    <span class="flex items-center gap-1"><i class="far fa-eye text-blue-400"></i> ${Math.floor(Math.random() * 500)} Views</span>
-                                    <span class="flex items-center gap-1"><i class="far fa-hand-pointer text-blue-400"></i> ${Math.floor(Math.random() * 50)} Leads</span>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-        
-        function renderKB(el) {
-            const role = Auth.currentUser.role;
-            // Filter articles based on visibility (Simulated by category matching)
-            const articles = Store.data.kb.filter(a => role === 'admin' || a.category.toLowerCase().includes(role) || a.category === 'All');
             
-            el.innerHTML = `
-                <div class="max-w-3xl mx-auto fade-in">
-                    <div class="text-center mb-8">
-                        <h2 class="text-2xl font-bold text-slate-800">Knowledge Base</h2>
-                        <div class="mt-4 relative max-w-lg mx-auto">
-                            <input type="text" placeholder="Search articles..." class="w-full pl-10 pr-4 py-3 rounded-full border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm">
-                            <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
+            // Fallback content if no listings exist
+            if(listings.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300">
+                        <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                            <i class="fas fa-home text-2xl"></i>
                         </div>
-                    </div>
-                    <div class="space-y-4">
-                        ${articles.map(a => `
-                            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition cursor-pointer group">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide">${a.category}</span>
-                                </div>
-                                <h3 class="font-bold text-lg text-slate-800 group-hover:text-blue-600 transition">${a.title}</h3>
-                                <p class="text-slate-500 text-sm mt-1 line-clamp-2">${a.content}</p>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        }
-        
-        function renderFinance(el) {
-            const role = Auth.currentUser.role;
-            // Tenants see 'Pay Rent', Owners see 'Ledger'
-            if(role === 'tenant') {
-                 el.innerHTML = `
-                    <div class="max-w-lg mx-auto bg-white p-8 rounded-xl shadow-lg border border-slate-100 fade-in text-center">
-                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-2xl mx-auto mb-4"><i class="fas fa-check"></i></div>
-                        <h2 class="text-2xl font-bold text-slate-800">All Caught Up!</h2>
-                        <p class="text-slate-500 mb-8">You have no outstanding balance for this month.</p>
-                        <button class="w-full py-3 bg-slate-100 text-slate-400 font-bold rounded-lg cursor-not-allowed">Make Payment</button>
-                        <p class="text-xs text-slate-400 mt-4">Next Invoice: Nov 01, 2023</p>
+                        <h3 class="text-lg font-bold text-slate-700">No vacancies right now</h3>
+                        <p class="text-slate-500 max-w-md mx-auto mt-2">We are currently at full capacity. Join the waiting list below to be the first to know when a unit opens up.</p>
                     </div>
                 `;
-            } else {
-                 // Admin or Owner view
-                 const isOwner = role === 'owner';
-                 const ledger = Store.data.ledger || [];
-                 // Filter for owner
-                 const transactions = isOwner 
-                    ? ledger.filter(t => Auth.currentUser.properties.includes(t.propertyId))
-                    : ledger;
-
-                 let html = `
-                    <div class="fade-in">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold text-slate-800">Financial Ledger</h2>
-                            ${!isOwner ? `<button onclick="addTransactionModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2"><i class="fas fa-plus"></i> Record Transaction</button>` : ''}
-                        </div>
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                             <table class="w-full text-left text-sm">
-                                <thead class="bg-slate-50 border-b border-slate-200">
-                                    <tr><th class="p-4">Date</th><th class="p-4">Description</th><th class="p-4">Category</th><th class="p-4 text-right">Amount</th></tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">`;
-                                
-                 if (transactions.length === 0) {
-                    html += `<tr><td colspan="4" class="p-6 text-center text-slate-400">No transactions found.</td></tr>`;
-                 } else {
-                    transactions.forEach(t => {
-                        html += `
-                            <tr>
-                                <td class="p-4 font-mono text-slate-500">${t.date}</td>
-                                <td class="p-4 font-medium">${t.desc}</td>
-                                <td class="p-4"><span class="bg-slate-100 px-2 py-1 rounded text-xs uppercase tracking-wide text-slate-600">${t.category}</span></td>
-                                <td class="p-4 text-right font-bold ${t.type==='Debit'?'text-red-500':'text-green-600'}">
-                                    ${t.type==='Debit'?'-':'+'}$${Math.abs(t.amount).toLocaleString()}
-                                </td>
-                            </tr>
-                        `;
-                    });
-                 }
-                 html += `</tbody></table></div></div>`;
-                 el.innerHTML = html;
+                return;
             }
-        }
 
-        function renderAutomation(el) {
-            el.innerHTML = `
-                <div class="fade-in">
-                     <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-xl font-bold text-slate-800">Workflow Automation</h2>
-                        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium">New Workflow</button>
+            // Render Listings
+            container.innerHTML = listings.map(l => `
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group cursor-pointer">
+                    <div class="h-64 bg-slate-200 relative overflow-hidden">
+                        <!-- Placeholder Image Logic -->
+                        <div class="absolute inset-0 bg-slate-300 group-hover:scale-105 transition duration-700 ease-out flex items-center justify-center text-slate-400">
+                            <i class="fas fa-image text-4xl"></i>
+                        </div>
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
+                        
+                        <span class="absolute top-4 right-4 bg-white/95 backdrop-blur text-slate-900 font-bold px-3 py-1.5 rounded-lg text-sm shadow-sm">
+                            $${l.price.toLocaleString()}<span class="text-slate-500 font-normal text-xs">/mo</span>
+                        </span>
+                        
+                        <span class="absolute bottom-4 left-4 text-white font-medium flex items-center gap-2">
+                            <i class="fas fa-map-marker-alt text-blue-400"></i> ${l.headline}
+                        </span>
                     </div>
-                    
-                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 mb-6 text-sm text-blue-800 flex items-start gap-3">
-                         <i class="fas fa-info-circle mt-1"></i>
-                         <div>
-                            <p class="font-bold">Google Apps Script Integration</p>
-                            <p>To enable email notifications, create a GAS Web App script and paste the URL in the System tab.</p>
-                         </div>
-                    </div>
-
-                    <div class="space-y-4">
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 flex items-center justify-between">
-                            <div class="flex items-center gap-4">
-                                <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center"><i class="fas fa-bolt"></i></div>
-                                <div>
-                                    <h3 class="font-bold text-slate-800">New Lead Notification</h3>
-                                    <p class="text-xs text-slate-500">IF Lead Created THEN Trigger GAS Webhook</p>
-                                </div>
+                    <div class="p-6">
+                        <p class="text-slate-600 text-sm line-clamp-3 mb-6 leading-relaxed">${l.desc}</p>
+                        
+                        <div class="flex items-center justify-between border-t border-slate-100 pt-4">
+                            <div class="flex gap-3 text-xs text-slate-500 font-medium">
+                                <span><i class="fas fa-bed"></i> 2 Beds</span>
+                                <span><i class="fas fa-bath"></i> 1 Bath</span>
                             </div>
-                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                <input type="checkbox" name="toggle" id="toggle1" checked class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-green-400 right-0"/>
-                                <label for="toggle1" class="toggle-label block overflow-hidden h-5 rounded-full bg-green-400 cursor-pointer"></label>
-                            </div>
+                            <button class="text-blue-600 font-bold text-sm hover:text-blue-800 transition">View Details &rarr;</button>
                         </div>
                     </div>
                 </div>
-            `;
+            `).join('');
         }
-        
-        function renderMaintenance(el) {
-             const role = Auth.currentUser.role;
-             const tickets = role === 'admin' ? Store.data.tickets : 
-                            (role === 'vendor' ? (Store.data.tickets || []).filter(t => t.assignedTo === Auth.currentUser.id) : 
-                             (Store.data.tickets || []).filter(t => t.createdBy === Auth.currentUser.id)); // Tenant logic simplified
-             
-             el.innerHTML = `
-                <div class="flex justify-between items-center mb-6 fade-in">
-                    <h2 class="text-xl font-bold text-slate-800">Maintenance Tickets</h2>
-                    ${role === 'tenant' ? '<button onclick="addTicketModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium">New Request</button>' : ''}
-                </div>
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden fade-in">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-50 border-b border-slate-200">
-                            <tr><th class="p-4">Issue</th><th class="p-4">Priority</th><th class="p-4">Status</th></tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                             ${tickets && tickets.length ? tickets.map(t => `
-                                <tr>
-                                    <td class="p-4 font-medium">${t.title}</td>
-                                    <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${t.priority==='High'?'bg-red-100 text-red-600':'bg-blue-50 text-blue-600'}">${t.priority}</span></td>
-                                    <td class="p-4">${t.status}</td>
-                                </tr>
-                             `).join('') : `<tr><td colspan="3" class="p-8 text-center text-slate-400">No tickets found.</td></tr>`}
-                        </tbody>
-                    </table>
-                </div>
-             `;
-        }
-        
-        function renderProperties(el) {
-             // Logic similar to previous prototype, filtered by role
-             const props = Auth.currentUser.role === 'owner' 
-                ? Store.data.properties.filter(p => Auth.currentUser.properties.includes(p.id))
-                : Store.data.properties;
+
+        function captureLead(e) {
+            e.preventDefault();
+            const emailInput = document.getElementById('leadEmail');
+            const email = emailInput.value;
+            
+            if(email) {
+                // Use the Shared Store to add the lead (Works in Local or Cloud mode)
+                Store.add('leads', { 
+                    name: 'Web Visitor', 
+                    email: email, 
+                    type: 'Tenant Prospect', 
+                    status: 'New', 
+                    note: 'Captured via Z-Bridges Public Landing Page',
+                    timestamp: new Date().toISOString()
+                });
                 
-             el.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in">
-                     ${props.map(p => `
-                         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <h3 class="font-bold text-slate-800">${p.name}</h3>
-                            <p class="text-sm text-slate-500">${p.type} • $${p.rent}</p>
-                            <div class="mt-3 flex justify-between items-center">
-                                <span class="text-xs font-bold px-2 py-1 bg-slate-100 rounded">${p.status}</span>
-                                <button class="text-blue-600 text-sm font-medium">Details</button>
-                            </div>
-                         </div>
-                     `).join('')}
-                </div>
-             `;
-        }
-
-        function renderSystem(el) {
-            el.innerHTML = `
-                <div class="fade-in max-w-3xl mx-auto space-y-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <h2 class="text-2xl font-bold text-slate-800">System & Cloud Connections</h2>
-                        ${Infrastructure.mode === 'cloud' 
-                            ? '<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold uppercase">Cloud Active</span>'
-                            : '<span class="px-2 py-1 bg-slate-200 text-slate-600 rounded text-xs font-bold uppercase">Local Mode</span>'}
-                    </div>
-
-                    <!-- 1. GITHUB PAGES DEPLOYMENT -->
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <div class="flex items-center gap-4 mb-4">
-                            <div class="w-10 h-10 bg-slate-800 text-white rounded-lg flex items-center justify-center text-xl"><i class="fab fa-github"></i></div>
-                            <div>
-                                <h3 class="font-bold text-lg text-slate-800">1. Free Hosting (GitHub Pages)</h3>
-                                <p class="text-sm text-slate-500">Host this entire app for $0/mo.</p>
-                            </div>
-                        </div>
-                        <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2 ml-2 bg-slate-50 p-4 rounded-lg">
-                            <li>Create a new public repository on GitHub.</li>
-                            <li>Upload this <code>index.html</code> file to the repo.</li>
-                            <li>Go to <strong>Settings > Pages</strong>.</li>
-                            <li>Set "Source" to <code>main</code> branch and Save.</li>
-                            <li>Your app will be live at <code>yourname.github.io/repo</code>.</li>
-                        </ol>
-                    </div>
-
-                    <!-- 2. FIREBASE CONFIG -->
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <div class="flex items-center gap-4 mb-4">
-                            <div class="w-10 h-10 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center text-xl"><i class="fas fa-fire"></i></div>
-                            <div>
-                                <h3 class="font-bold text-lg text-slate-800">2. Cloud Database (Firebase)</h3>
-                                <p class="text-sm text-slate-500">Connect to Firestore for real-time data across devices.</p>
-                            </div>
-                        </div>
-                        <textarea id="fbConfigInput" rows="5" class="w-full text-xs font-mono border rounded-lg p-3 bg-slate-50 text-slate-600 mb-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder='Paste config here: { "apiKey": "...", "authDomain": "...", "projectId": "..." }'></textarea>
-                        <div class="flex gap-2">
-                            <button onclick="saveFirebase()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Connect Database</button>
-                            <button onclick="Infrastructure.reset()" class="px-4 py-2 text-red-500 text-sm font-medium hover:bg-red-50">Disconnect</button>
-                        </div>
-                    </div>
-
-                    <!-- 3. GOOGLE APPS SCRIPT -->
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <div class="flex items-center gap-4 mb-4">
-                            <div class="w-10 h-10 bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-xl"><i class="fas fa-scroll"></i></div>
-                            <div>
-                                <h3 class="font-bold text-lg text-slate-800">3. Email Automation (Apps Script)</h3>
-                                <p class="text-sm text-slate-500">Trigger emails for free using a GAS Web App.</p>
-                            </div>
-                        </div>
-                        <input id="gasUrlInput" type="text" value="${Infrastructure.gasUrl}" class="w-full text-xs border rounded-lg p-3 bg-slate-50 mb-3 focus:ring-2 focus:ring-green-500 outline-none" placeholder="Paste your script URL: https://script.google.com/macros/s/.../exec">
-                        <button onclick="saveGAS()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">Save Automation Hook</button>
-                    </div>
-
-                </div>
-            `;
-        }
-
-        // --- MODAL HANDLERS ---
-        function addLeadModal() {
-            UI.modal(`
-                <div class="bg-white rounded-xl w-full max-w-md p-6">
-                    <h3 class="font-bold text-lg mb-4">Add New Lead</h3>
-                    <input id="leadName" class="w-full border p-2 rounded mb-2" placeholder="Full Name">
-                    <input id="leadEmail" class="w-full border p-2 rounded mb-2" placeholder="Email">
-                    <select id="leadType" class="w-full border p-2 rounded mb-4">
-                        <option>Tenant Prospect</option><option>Owner Prospect</option>
-                    </select>
-                    <div class="flex justify-end gap-2">
-                        <button onclick="UI.closeModal()" class="px-4 py-2 text-slate-500">Cancel</button>
-                        <button onclick="saveLead()" class="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
-                    </div>
-                </div>
-            `);
-        }
-        
-        function saveLead() {
-            const name = document.getElementById('leadName').value;
-            const email = document.getElementById('leadEmail').value;
-            const type = document.getElementById('leadType').value;
-            if(name) {
-                Store.add('leads', { name, email, type, status: 'New', note: 'Created via CRM' });
-                UI.closeModal();
-                router('crm');
+                // Visual Feedback
+                const btn = e.target.querySelector('button');
+                const originalText = btn.innerText;
+                btn.innerText = "Success!";
+                btn.classList.add('bg-green-600');
+                
+                alert(`Thank you! ${email} has been added to our priority list.`);
+                
+                emailInput.value = '';
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.classList.remove('bg-green-600');
+                }, 3000);
             }
         }
-        
-        function addTicketModal() {
-             UI.modal(`
-                <div class="bg-white rounded-xl w-full max-w-md p-6">
-                    <h3 class="font-bold text-lg mb-4">Report Issue</h3>
-                    <input id="ticketTitle" class="w-full border p-2 rounded mb-2" placeholder="Issue Title (e.g., Leaking Roof)">
-                    <select id="ticketPriority" class="w-full border p-2 rounded mb-4">
-                        <option>Low</option><option>Medium</option><option>High</option>
-                    </select>
-                    <div class="flex justify-end gap-2">
-                        <button onclick="UI.closeModal()" class="px-4 py-2 text-slate-500">Cancel</button>
-                        <button onclick="saveTicket()" class="px-4 py-2 bg-blue-600 text-white rounded">Submit</button>
-                    </div>
-                </div>
-            `);
-        }
-        
-        function saveTicket() {
-             const title = document.getElementById('ticketTitle').value;
-             const priority = document.getElementById('ticketPriority').value;
-             if(title) {
-                Store.add('tickets', { 
-                    title, priority, status: 'Open', 
-                    createdBy: Auth.currentUser.id, 
-                    propertyId: Auth.currentUser.propertyId 
-                });
-                UI.closeModal();
-                router('maintenance');
-             }
-        }
-
-        function addListingModal() {
-            // Dropdown of properties to list
-            const options = Store.data.properties.map(p => `<option value="${p.id}">${p.name} ($${p.rent})</option>`).join('');
-            UI.modal(`
-                <div class="bg-white rounded-xl w-full max-w-md p-6">
-                    <h3 class="font-bold text-lg mb-4">Create New Listing</h3>
-                    <label class="block text-xs font-bold text-slate-500 mb-1">Select Property</label>
-                    <select id="listingProp" class="w-full border p-2 rounded mb-3 bg-slate-50">${options}</select>
-                    
-                    <label class="block text-xs font-bold text-slate-500 mb-1">Headline</label>
-                    <input id="listingHead" class="w-full border p-2 rounded mb-3" placeholder="e.g. Sunny Downtown Loft">
-                    
-                    <label class="block text-xs font-bold text-slate-500 mb-1">Description</label>
-                    <textarea id="listingDesc" class="w-full border p-2 rounded mb-3" rows="3" placeholder="Describe the amenities..."></textarea>
-                    
-                    <label class="block text-xs font-bold text-slate-500 mb-2">Syndication Channels (Simulated)</label>
-                    <div class="flex gap-4 mb-6">
-                        <label class="flex items-center gap-2"><input type="checkbox" checked class="text-blue-600"> Zillow</label>
-                        <label class="flex items-center gap-2"><input type="checkbox" checked class="text-blue-600"> Trulia</label>
-                        <label class="flex items-center gap-2"><input type="checkbox" checked class="text-blue-600"> Craigslist</label>
-                    </div>
-
-                    <div class="flex justify-end gap-2">
-                        <button onclick="UI.closeModal()" class="px-4 py-2 text-slate-500">Cancel</button>
-                        <button onclick="saveListing()" class="px-4 py-2 bg-green-600 text-white rounded shadow-lg shadow-green-500/30">Publish</button>
-                    </div>
-                </div>
-            `);
-        }
-
-        function saveListing() {
-            const propId = document.getElementById('listingProp').value;
-            const headline = document.getElementById('listingHead').value;
-            const desc = document.getElementById('listingDesc').value;
-            const prop = Store.data.properties.find(p => p.id == propId);
-
-            if(headline && prop) {
-                Store.add('listings', { 
-                    propertyId: propId, 
-                    headline, 
-                    desc, 
-                    price: prop.rent, 
-                    published: true 
-                });
-                UI.closeModal();
-                router('marketing');
-                UI.toast('Listing published to network!');
-            }
-        }
-
-        function addTransactionModal() {
-            const propOptions = Store.data.properties.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-            UI.modal(`
-                <div class="bg-white rounded-xl w-full max-w-md p-6">
-                    <h3 class="font-bold text-lg mb-4">Record Ledger Transaction</h3>
-                    
-                    <div class="grid grid-cols-2 gap-3 mb-3">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Type</label>
-                            <select id="transType" class="w-full border p-2 rounded bg-slate-50">
-                                <option value="Credit">Credit (Income)</option>
-                                <option value="Debit">Debit (Expense)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Amount ($)</label>
-                            <input type="number" id="transAmount" class="w-full border p-2 rounded" placeholder="0.00">
-                        </div>
-                    </div>
-
-                    <label class="block text-xs font-bold text-slate-500 mb-1">Property</label>
-                    <select id="transProp" class="w-full border p-2 rounded mb-3 bg-slate-50">${propOptions}</select>
-
-                    <label class="block text-xs font-bold text-slate-500 mb-1">Description</label>
-                    <input type="text" id="transDesc" class="w-full border p-2 rounded mb-3" placeholder="e.g. October Rent">
-
-                    <label class="block text-xs font-bold text-slate-500 mb-1">Category</label>
-                    <select id="transCat" class="w-full border p-2 rounded mb-4 bg-slate-50">
-                        <option>Rent</option>
-                        <option>Maintenance</option>
-                        <option>Utilities</option>
-                        <option>Management Fee</option>
-                    </select>
-
-                    <div class="flex justify-end gap-2">
-                        <button onclick="UI.closeModal()" class="px-4 py-2 text-slate-500">Cancel</button>
-                        <button onclick="saveTransaction()" class="px-4 py-2 bg-blue-600 text-white rounded shadow-lg shadow-blue-500/30">Record</button>
-                    </div>
-                </div>
-            `);
-        }
-
-        function saveTransaction() {
-            const type = document.getElementById('transType').value;
-            const amount = parseFloat(document.getElementById('transAmount').value);
-            const propId = document.getElementById('transProp').value;
-            const desc = document.getElementById('transDesc').value;
-            const category = document.getElementById('transCat').value;
-
-            if(desc && amount) {
-                Store.add('ledger', {
-                    date: new Date().toISOString().split('T')[0],
-                    desc,
-                    amount: type === 'Debit' ? -amount : amount,
-                    type,
-                    category,
-                    propertyId: parseInt(propId)
-                });
-                UI.closeModal();
-                router('finance');
-                UI.toast('Transaction recorded successfully.');
-            }
-        }
-        
-        // --- SETTINGS SAVE HANDLERS ---
-        function saveFirebase() {
-            const config = document.getElementById('fbConfigInput').value;
-            if(config) {
-                Infrastructure.saveCloudConfig(config);
-            }
-        }
-        
-        function saveGAS() {
-            const url = document.getElementById('gasUrlInput').value;
-            if(url) {
-                Infrastructure.saveAutomationConfig(url);
-            }
-        }
-
-        // --- INIT ---
-        Store.init();
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('hidden'); }
     </script>
 </body>
-</html>
