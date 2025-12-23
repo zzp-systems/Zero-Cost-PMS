@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Z-Bridges PMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Firebase SDKs (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+</head>
+<body class="bg-slate-900 h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="p-8">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4 shadow-lg shadow-blue-500/30">Z</div>
+                <h1 class="text-2xl font-bold text-slate-800">Z-Bridges PMS</h1>
+                <p class="text-slate-500">Sign in to your portal</p>
+            </div>
+
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                    <div class="relative">
+                        <i class="fas fa-envelope absolute left-3 top-3.5 text-slate-400"></i>
+                        <input type="email" id="email" class="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="name@z-bridges.com" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-3 top-3.5 text-slate-400"></i>
+                        <input type="password" id="password" class="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition shadow-lg shadow-blue-500/30">Sign In</button>
+            </form>
+
+            <div class="mt-8 border-t border-slate-100 pt-6">
+                <p class="text-xs text-center text-slate-400 font-bold uppercase mb-4">Demo Credentials</p>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <button onclick="fillCreds('admin@z-bridges.com', 'admin')" class="p-2 bg-slate-50 rounded hover:bg-slate-100 border border-slate-200 text-slate-600">Admin</button>
+                    <button onclick="fillCreds('alice@mail.com', 'user')" class="p-2 bg-slate-50 rounded hover:bg-slate-100 border border-slate-200 text-slate-600">Tenant</button>
+                    <button onclick="fillCreds('bob@investor.com', 'user')" class="p-2 bg-slate-50 rounded hover:bg-slate-100 border border-slate-200 text-slate-600">Owner</button>
+                    <button onclick="fillCreds('fix@repair.com', 'user')" class="p-2 bg-slate-50 rounded hover:bg-slate-100 border border-slate-200 text-slate-600">Vendor</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Logic -->
+    <script src="js/app.js"></script>
+    <script>
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            Auth.login(email, pass);
+        }
+
+        function fillCreds(e, p) {
+            document.getElementById('email').value = e;
+            document.getElementById('password').value = p;
+        }
+    </script>
+</body>
+</html>
