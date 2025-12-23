@@ -42,7 +42,7 @@
                 <i class="fas fa-building w-5 text-center group-hover:text-blue-400"></i> Properties
             </button>
             <button onclick="router('crm')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium group" data-target="crm">
-                <i class="fas fa-users w-5 text-center group-hover:text-blue-400"></i> CRM & Leads
+                <i class="fas fa-users w-5 text-center group-hover:text-blue-400"></i> CRM & Directory
             </button>
             <button onclick="router('marketing')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium group" data-target="marketing">
                 <i class="fas fa-bullhorn w-5 text-center group-hover:text-blue-400"></i> Marketing / ILS
@@ -270,29 +270,130 @@
 
         function renderCRM(el) {
             const leads = Store.data.leads || [];
+            const users = Store.data.users || [];
+            
+            // Filter active users by role
+            const tenants = users.filter(u => u.role === 'tenant');
+            const owners = users.filter(u => u.role === 'owner');
+            const vendors = users.filter(u => u.role === 'vendor');
+
             el.innerHTML = `
-                <div class="fade-in">
-                    <div class="flex justify-between items-center mb-6">
-                        <div><h2 class="text-lg font-bold text-slate-800">CRM & Leads</h2><p class="text-xs text-slate-500">Track prospective tenants</p></div>
-                        <button onclick="addLeadModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"><i class="fas fa-plus"></i> Add Lead</button>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-bold">
-                                <tr><th class="p-4">Name / Email</th><th class="p-4">Type</th><th class="p-4">Status</th><th class="p-4">Note</th><th class="p-4">Action</th></tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                ${leads.length ? leads.map(l => `
-                                    <tr class="hover:bg-slate-50 transition">
-                                        <td class="p-4"><p class="font-bold text-slate-700">${l.name}</p><p class="text-slate-400 text-xs">${l.email}</p></td>
-                                        <td class="p-4"><span class="px-2 py-1 rounded bg-slate-100 text-slate-600 text-xs">${l.type}</span></td>
-                                        <td class="p-4"><span class="text-blue-600 font-bold text-xs uppercase">${l.status}</span></td>
-                                        <td class="p-4 text-slate-500 truncate max-w-xs">${l.note}</td>
-                                        <td class="p-4"><button class="text-slate-400 hover:text-blue-600"><i class="fas fa-paper-plane"></i></button></td>
+                <div class="fade-in space-y-8">
+                    <!-- Section 1: Lead Pipeline (Prospects) -->
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h2 class="text-lg font-bold text-slate-800">Lead Pipeline</h2>
+                                <p class="text-xs text-slate-500">Prospective Tenants & Owners</p>
+                            </div>
+                            <button onclick="addLeadModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm flex items-center gap-2">
+                                <i class="fas fa-plus"></i> Add Lead
+                            </button>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-bold">
+                                    <tr>
+                                        <th class="p-4">Prospect</th>
+                                        <th class="p-4">Type</th>
+                                        <th class="p-4">Status</th>
+                                        <th class="p-4">Notes</th>
+                                        <th class="p-4 text-right">Actions</th>
                                     </tr>
-                                `).join('') : `<tr><td colspan="5" class="p-8 text-center text-slate-400">No leads found.</td></tr>`}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    ${leads.length ? leads.map(l => `
+                                        <tr class="hover:bg-slate-50 transition group">
+                                            <td class="p-4">
+                                                <p class="font-bold text-slate-700">${l.name}</p>
+                                                <p class="text-xs text-slate-400">${l.email}</p>
+                                            </td>
+                                            <td class="p-4"><span class="px-2 py-1 rounded bg-blue-50 text-blue-600 text-xs font-medium">${l.type}</span></td>
+                                            <td class="p-4"><span class="text-xs font-bold uppercase text-slate-500">${l.status}</span></td>
+                                            <td class="p-4 text-slate-500 text-xs max-w-xs truncate">${l.note}</td>
+                                            <td class="p-4 text-right">
+                                                <button onclick="convertLead('${l.id}')" class="text-xs bg-green-100 text-green-700 px-3 py-1 rounded hover:bg-green-200 font-medium transition flex items-center gap-1 ml-auto">
+                                                    <i class="fas fa-exchange-alt"></i> Convert
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('') : `<tr><td colspan="5" class="p-8 text-center text-slate-400">No active leads in pipeline.</td></tr>`}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Contact Directory (Active Relationships) -->
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h2 class="text-lg font-bold text-slate-800">Contact Directory</h2>
+                                <p class="text-xs text-slate-500">Active Relationships (Tenants, Owners, Vendors)</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <span class="px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-600">Tenants: ${tenants.length}</span>
+                                <span class="px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-600">Owners: ${owners.length}</span>
+                                <span class="px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-600">Vendors: ${vendors.length}</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Tenants Column -->
+                            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                                <h3 class="font-bold text-slate-700 mb-3 border-b border-slate-100 pb-2 flex items-center gap-2 text-sm">
+                                    <div class="w-6 h-6 rounded bg-blue-100 flex items-center justify-center text-blue-600"><i class="fas fa-home"></i></div>
+                                    Leases / Tenants
+                                </h3>
+                                <ul class="space-y-3">
+                                    ${tenants.map(u => `
+                                        <li class="flex items-center gap-3 text-sm p-2 hover:bg-slate-50 rounded transition">
+                                            <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold">${u.name.charAt(0)}</div>
+                                            <div class="overflow-hidden">
+                                                <p class="font-medium text-slate-800 truncate">${u.name}</p>
+                                                <p class="text-xs text-slate-400 truncate">${u.email}</p>
+                                            </div>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                            
+                            <!-- Owners Column -->
+                            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                                <h3 class="font-bold text-slate-700 mb-3 border-b border-slate-100 pb-2 flex items-center gap-2 text-sm">
+                                    <div class="w-6 h-6 rounded bg-purple-100 flex items-center justify-center text-purple-600"><i class="fas fa-key"></i></div>
+                                    Clients / Owners
+                                </h3>
+                                <ul class="space-y-3">
+                                    ${owners.map(u => `
+                                        <li class="flex items-center gap-3 text-sm p-2 hover:bg-slate-50 rounded transition">
+                                            <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold">${u.name.charAt(0)}</div>
+                                            <div class="overflow-hidden">
+                                                <p class="font-medium text-slate-800 truncate">${u.name}</p>
+                                                <p class="text-xs text-slate-400 truncate">${u.email}</p>
+                                            </div>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+
+                            <!-- Vendors Column -->
+                            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                                <h3 class="font-bold text-slate-700 mb-3 border-b border-slate-100 pb-2 flex items-center gap-2 text-sm">
+                                    <div class="w-6 h-6 rounded bg-orange-100 flex items-center justify-center text-orange-600"><i class="fas fa-hard-hat"></i></div>
+                                    Vendors / Contractors
+                                </h3>
+                                <ul class="space-y-3">
+                                    ${vendors.map(u => `
+                                        <li class="flex items-center gap-3 text-sm p-2 hover:bg-slate-50 rounded transition">
+                                            <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold">${u.name.charAt(0)}</div>
+                                            <div class="overflow-hidden">
+                                                <p class="font-medium text-slate-800 truncate">${u.name}</p>
+                                                <p class="text-xs text-slate-400 truncate">${u.skill || 'General Contractor'}</p>
+                                            </div>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -513,6 +614,35 @@
                     </div>
                 </div>
             `);
+        }
+
+        // --- ACTION HANDLERS ---
+        function convertLead(id) {
+            const leads = Store.data.leads || [];
+            const leadIndex = leads.findIndex(l => l.id == id);
+            
+            if (leadIndex > -1) {
+                const lead = leads[leadIndex];
+                let role = 'tenant';
+                if (lead.type && lead.type.toLowerCase().includes('owner')) role = 'owner';
+                
+                // Add to Users (Simulated conversion)
+                Store.add('users', {
+                    name: lead.name,
+                    email: lead.email,
+                    role: role,
+                    password: 'user', 
+                    joined: new Date().toISOString()
+                });
+                
+                // Remove from Leads locally for immediate UI update
+                leads.splice(leadIndex, 1);
+                // Force local save if in local mode to persist deletion
+                if (Infrastructure.mode === 'local') localStorage.setItem('z-bridgesERP', JSON.stringify(Store.data));
+                
+                UI.toast(`Converted ${lead.name} to ${role}`);
+                router('crm'); // Re-render to show moved data
+            }
         }
 
         // --- DATA SAVERS ---
