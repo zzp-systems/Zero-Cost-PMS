@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manager - Z-Bridges PMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+</head>
+<body class="bg-slate-50 h-screen flex overflow-hidden">
+
+    <!-- Admin Sidebar -->
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col">
+        <div class="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950 font-bold text-white tracking-tight">
+            Z-BRIDGES ADMIN
+        </div>
+        <nav class="flex-1 p-4 space-y-1">
+            <!-- Admin Specific Menu -->
+            <button onclick="router('dashboard')" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white text-sm font-medium"><i class="fas fa-chart-pie w-5"></i> Dashboard</button>
+            <button onclick="router('properties')" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white text-sm font-medium"><i class="fas fa-building w-5"></i> Properties</button>
+            <button onclick="router('crm')" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white text-sm font-medium"><i class="fas fa-users w-5"></i> CRM & Leads</button>
+            <button onclick="router('marketing')" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white text-sm font-medium"><i class="fas fa-bullhorn w-5"></i> Marketing</button>
+            <button onclick="router('finance')" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white text-sm font-medium"><i class="fas fa-wallet w-5"></i> Bookkeeping</button>
+            <button onclick="router('system')" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white text-sm font-medium mt-8"><i class="fas fa-server w-5"></i> System</button>
+        </nav>
+        <div class="p-4 bg-slate-950 border-t border-slate-800 flex items-center gap-3">
+            <div id="user-avatar" class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs text-white font-bold">ZB</div>
+            <div class="text-xs">
+                <p class="text-white font-medium">Administrator</p>
+                <button onclick="Auth.logout()" class="text-slate-500 hover:text-white">Sign out</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col">
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8">
+            <h1 id="page-title" class="text-lg font-bold text-slate-800">Overview</h1>
+            <span id="db-status" class="px-2 py-1 rounded text-xs font-bold uppercase bg-slate-100 text-slate-500">Checking...</span>
+        </header>
+        <div id="app-content" class="flex-1 overflow-auto p-8">
+            <!-- View Content Injected Here -->
+        </div>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        // Init Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            Auth.guard('admin'); // Kick non-admins
+            document.getElementById('user-avatar').innerText = Auth.getInitials();
+            router('dashboard'); // Default
+        });
+
+        // Router & Render Functions (Simplified from previous prototype)
+        function router(view) {
+            document.getElementById('page-title').innerText = view.charAt(0).toUpperCase() + view.slice(1);
+            const content = document.getElementById('app-content');
+            content.innerHTML = ''; // Clear
+
+            if(view === 'dashboard') renderDashboard(content);
+            else if(view === 'crm') renderCRM(content);
+            else if(view === 'marketing') renderMarketing(content);
+            // ... (Add other renderers from previous logic) ...
+            else content.innerHTML = `<div class="text-slate-400">View: ${view}</div>`;
+        }
+
+        // --- RENDERERS (Excerpt) ---
+        function renderDashboard(el) {
+            const leads = Store.data.leads.length;
+            el.innerHTML = `
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <p class="text-xs font-bold text-slate-400 uppercase">Leads</p>
+                        <h3 class="text-3xl font-bold text-slate-800">${leads}</h3>
+                    </div>
+                    <!-- Add more widgets -->
+                </div>
+            `;
+        }
+        
+        function renderCRM(el) {
+             const leads = Store.data.leads || [];
+             el.innerHTML = `
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr><th class="p-4">Name</th><th class="p-4">Status</th></tr>
+                        </thead>
+                        <tbody>
+                            ${leads.map(l => `<tr><td class="p-4">${l.name}</td><td class="p-4">${l.status}</td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+             `;
+        }
+        
+        function renderMarketing(el) {
+            const listings = Store.data.listings || [];
+            el.innerHTML = `
+                <div class="flex justify-between items-center mb-6 fade-in">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Marketing & ILS</h2>
+                        <p class="text-sm text-slate-500">Manage listings and syndicate to Zillow/Trulia</p>
+                    </div>
+                    <button class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 shadow-lg shadow-green-500/30 flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Create Listing
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 fade-in">
+                    ${listings.map(l => `
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition">
+                            <div class="h-48 bg-slate-200 relative">
+                                <span class="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded shadow">PUBLISHED</span>
+                                <div class="absolute inset-0 flex items-center justify-center text-slate-400"><i class="fas fa-image text-4xl"></i></div>
+                                <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/50 to-transparent p-4">
+                                    <h3 class="font-bold text-white text-lg drop-shadow-md">${l.headline}</h3>
+                                </div>
+                            </div>
+                            <div class="p-5 flex-1 flex flex-col">
+                                <div class="flex justify-between items-center mb-3">
+                                    <span class="font-bold text-blue-600 text-lg">$${l.price}</span>
+                                </div>
+                                <p class="text-sm text-slate-500 mb-4 flex-1">${l.desc}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
