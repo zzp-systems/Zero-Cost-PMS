@@ -2,93 +2,382 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Mobile Optimization -->
     <title>My Portal - Z-Bridges PMS</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Mobile First -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Firebase Compat SDKs (Required for Shared Logic) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
-</head>
-<body class="bg-slate-100 min-h-screen pb-20">
 
-    <!-- Mobile Header -->
-    <header class="bg-blue-600 text-white p-6 pb-12 shadow-lg">
-        <div class="flex justify-between items-center">
-            <h1 class="font-bold text-lg">My Portal</h1>
-            <button onclick="Auth.logout()" class="text-blue-200 hover:text-white"><i class="fas fa-sign-out-alt"></i></button>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Mobile-First Adjustments */
+        .safe-area-pb { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        .card-shadow { box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative pb-20">
+
+    <!-- Top Header (Context Aware) -->
+    <header class="bg-slate-900 text-white pt-8 pb-16 px-6 relative z-10 rounded-b-[2rem] shadow-xl">
+        <div class="flex justify-between items-start">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center text-lg font-bold border border-white/20">Z</div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">My Portal</h1>
+                    <p class="text-xs text-slate-400 font-medium tracking-wide uppercase" id="user-role-label">Loading...</p>
+                </div>
+            </div>
+            <button onclick="Auth.logout()" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-slate-300 hover:bg-white/20 hover:text-white transition">
+                <i class="fas fa-power-off text-xs"></i>
+            </button>
         </div>
-        <div class="mt-6">
-            <h2 class="text-2xl font-bold" id="user-greeting">Hello!</h2>
-            <p class="text-blue-100 text-sm" id="user-role-label">Tenant</p>
+        
+        <div class="mt-8 flex items-center justify-between">
+            <div>
+                <p class="text-slate-400 text-sm mb-1">Welcome back,</p>
+                <h2 class="text-2xl font-bold tracking-tight" id="user-name">Guest</h2>
+            </div>
+            <!-- Dynamic Status Indicator -->
+            <div id="status-pill" class="hidden px-3 py-1 bg-green-500/20 border border-green-500/30 text-green-300 text-xs font-bold rounded-full">
+                ACTIVE
+            </div>
         </div>
     </header>
 
-    <!-- Main Cards -->
-    <main class="px-4 -mt-8 space-y-4" id="portal-content">
-        <!-- Content injected based on role -->
+    <!-- Main Content Area (Injected via JS) -->
+    <main class="px-4 -mt-10 relative z-20 flex-1 space-y-6" id="portal-content">
+        <!-- Renderers target this container -->
+        <div class="flex justify-center py-10"><i class="fas fa-circle-notch fa-spin text-slate-400"></i></div>
     </main>
 
-    <!-- Bottom Nav -->
-    <nav class="fixed bottom-0 w-full bg-white border-t border-slate-200 flex justify-around py-3 text-slate-400 text-xs font-medium safe-area-pb">
-        <button class="flex flex-col items-center gap-1 text-blue-600">
-            <i class="fas fa-home text-lg"></i> Home
-        </button>
-        <button class="flex flex-col items-center gap-1 hover:text-blue-600">
-            <i class="fas fa-tools text-lg"></i> Requests
-        </button>
-        <button class="flex flex-col items-center gap-1 hover:text-blue-600">
-            <i class="fas fa-wallet text-lg"></i> Pay
-        </button>
+    <!-- Bottom Navigation (Mobile Tab Bar) -->
+    <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-100 flex justify-around items-center py-3 pb-6 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-50 safe-area-pb" id="bottom-nav">
+        <!-- Injected based on Role -->
     </nav>
 
+    <!-- Universal Modal -->
+    <div id="modal-container" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-[60] p-4 fade-in">
+        <!-- Content -->
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[70] transform -translate-y-20 transition-all duration-300 opacity-0 pointer-events-none w-[90%] max-w-sm">
+        <div class="bg-slate-800 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm font-medium">
+            <i class="fas fa-check-circle text-green-400"></i>
+            <span id="toast-message">Success</span>
+        </div>
+    </div>
+
+    <!-- Logic Connection -->
     <script src="js/app.js"></script>
     <script>
+        // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
-            Auth.guard(); // Any logged in user
-            
+            Auth.guard(); // Ensure logged in
             const user = Auth.currentUser;
-            document.getElementById('user-greeting').innerText = `Hello, ${user.name.split(' ')[0]}`;
-            document.getElementById('user-role-label').innerText = user.role.toUpperCase();
-
-            renderPortal(user.role);
+            
+            // Setup Profile Header
+            document.getElementById('user-name').innerText = user.name.split(' ')[0]; // First name
+            document.getElementById('user-role-label').innerText = user.role === 'owner' ? 'Property Owner' : (user.role === 'vendor' ? 'Service Partner' : 'Resident');
+            
+            // Initial Render
+            renderView(user.role, 'home');
         });
 
-        function renderPortal(role) {
+        // --- ROUTER ---
+        function renderView(role, view) {
             const container = document.getElementById('portal-content');
+            const nav = document.getElementById('bottom-nav');
             
-            if (role === 'tenant') {
-                container.innerHTML = `
-                    <div class="bg-white p-6 rounded-xl shadow-sm flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-slate-400 uppercase font-bold">Balance Due</p>
-                            <h3 class="text-3xl font-bold text-slate-800">$0.00</h3>
+            // 1. Render Bottom Nav (Contextual)
+            nav.innerHTML = getNavHTML(role, view);
+
+            // 2. Render Main Content
+            if(role === 'tenant') renderTenant(container, view);
+            else if(role === 'owner') renderOwner(container, view);
+            else if(role === 'vendor') renderVendor(container, view);
+        }
+
+        // --- NAV FACTORY ---
+        function getNavHTML(role, activeView) {
+            const btn = (icon, label, view) => `
+                <button onclick="renderView('${role}', '${view}')" class="flex flex-col items-center gap-1 w-16 ${activeView === view ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'} transition-colors">
+                    <i class="fas fa-${icon} text-lg mb-0.5"></i>
+                    <span class="text-[10px] font-bold tracking-wide">${label}</span>
+                </button>
+            `;
+
+            if(role === 'tenant') {
+                return btn('home', 'Home', 'home') + btn('tools', 'Fix It', 'maintenance') + btn('wallet', 'Pay', 'finance');
+            } else if(role === 'owner') {
+                return btn('chart-pie', 'Overview', 'home') + btn('file-invoice', 'Reports', 'finance') + btn('building', 'Assets', 'properties');
+            } else { // Vendor
+                return btn('clipboard-list', 'Jobs', 'home') + btn('check-circle', 'History', 'history') + btn('user', 'Profile', 'profile');
+            }
+        }
+
+        // --- TENANT VIEW ENGINE ---
+        function renderTenant(el, view) {
+            const user = Auth.currentUser;
+            
+            if(view === 'home') {
+                // Determine Lease Status
+                const leaseEnd = "Dec 31, 2025"; 
+                el.innerHTML = `
+                    <div class="bg-white p-6 rounded-2xl card-shadow fade-in">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Current Balance</p>
+                                <h3 class="text-3xl font-bold text-slate-800 mt-1">$0.00</h3>
+                            </div>
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">
+                                <i class="fas fa-check"></i>
+                            </div>
                         </div>
-                        <button class="bg-green-500 text-white w-10 h-10 rounded-full shadow-lg shadow-green-500/30"><i class="fas fa-check"></i></button>
+                        <button onclick="renderView('tenant', 'finance')" class="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition">View Statement</button>
                     </div>
 
-                    <div class="bg-white p-6 rounded-xl shadow-sm">
-                        <h3 class="font-bold text-slate-800 mb-4">Active Lease</h3>
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400"><i class="fas fa-home"></i></div>
+                    <div class="grid grid-cols-2 gap-4 fade-in">
+                        <div class="bg-white p-4 rounded-2xl card-shadow flex flex-col justify-center items-center text-center gap-2" onclick="renderView('tenant', 'maintenance')">
+                            <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 text-xl"><i class="fas fa-wrench"></i></div>
+                            <span class="text-sm font-bold text-slate-700">Request Repair</span>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl card-shadow flex flex-col justify-center items-center text-center gap-2">
+                            <div class="w-12 h-12 bg-purple-50 rounded-full flex items-center justify-center text-purple-600 text-xl"><i class="fas fa-file-contract"></i></div>
+                            <span class="text-sm font-bold text-slate-700">My Lease</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl card-shadow fade-in">
+                        <h4 class="font-bold text-slate-800 mb-3 text-sm">Unit Details</h4>
+                        <div class="flex items-center gap-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <i class="fas fa-home text-slate-400 text-xl ml-2"></i>
                             <div>
-                                <p class="font-bold text-sm">Sunset Villa Unit A</p>
-                                <p class="text-xs text-slate-500">Ends: Dec 2025</p>
+                                <p class="font-bold text-slate-700 text-sm">Sunset Villa Unit A</p>
+                                <p class="text-xs text-slate-500">Lease ends: ${leaseEnd}</p>
                             </div>
                         </div>
                     </div>
                 `;
-            } else if (role === 'owner') {
-                container.innerHTML = `
-                    <div class="bg-white p-6 rounded-xl shadow-sm">
-                        <p class="text-xs text-slate-400 uppercase font-bold">Net Income (MTD)</p>
-                        <h3 class="text-3xl font-bold text-blue-600">$2,400</h3>
+            } 
+            else if (view === 'finance') {
+                el.innerHTML = `
+                    <div class="fade-in">
+                        <h3 class="text-xl font-bold text-slate-800 mb-4 px-2">Payment History</h3>
+                        <div class="bg-white rounded-2xl card-shadow overflow-hidden">
+                            ${Store.data.ledger.filter(l => l.category === 'Rent').map(t => `
+                                <div class="flex justify-between items-center p-4 border-b border-slate-50 last:border-0">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs"><i class="fas fa-receipt"></i></div>
+                                        <div>
+                                            <p class="text-sm font-bold text-slate-700">Rent Payment</p>
+                                            <p class="text-[10px] text-slate-400">${t.date}</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-sm font-bold text-slate-800">$${t.amount}</span>
+                                </div>
+                            `).join('') || '<div class="p-6 text-center text-slate-400 text-sm">No payment history yet.</div>'}
+                        </div>
+                        <button class="mt-6 w-full py-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2">
+                            <i class="fas fa-lock"></i> Pay Rent Securely
+                        </button>
                     </div>
-                    <!-- Owner specific widgets -->
+                `;
+            }
+            else if (view === 'maintenance') {
+                const myTickets = Store.data.tickets.filter(t => t.unit); // In real app filter by user's unit
+                el.innerHTML = `
+                    <div class="fade-in">
+                        <div class="flex justify-between items-center mb-4 px-2">
+                            <h3 class="text-xl font-bold text-slate-800">Maintenance</h3>
+                            <button onclick="openTicketModal()" class="text-sm bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg font-bold">New +</button>
+                        </div>
+                        <div class="space-y-3">
+                            ${myTickets.map(t => `
+                                <div class="bg-white p-4 rounded-xl card-shadow border-l-4 ${t.status==='Open'?'border-orange-400':'border-green-400'}">
+                                    <div class="flex justify-between items-start">
+                                        <h4 class="font-bold text-slate-700 text-sm">${t.title}</h4>
+                                        <span class="text-[10px] font-bold uppercase bg-slate-100 px-2 py-0.5 rounded text-slate-500">${t.status}</span>
+                                    </div>
+                                    <p class="text-xs text-slate-400 mt-1">Priority: ${t.priority}</p>
+                                </div>
+                            `).join('') || '<div class="text-center py-10 text-slate-400 text-sm">No active requests.</div>'}
+                        </div>
+                    </div>
                 `;
             }
         }
+
+        // --- OWNER VIEW ENGINE ---
+        function renderOwner(el, view) {
+            const user = Auth.currentUser;
+            const props = Store.data.properties.filter(p => user.properties?.includes(p.id));
+            
+            if(view === 'home') {
+                // Calculate Mock Financials
+                const totalRent = props.reduce((a,b) => a + (b.rent || 0), 0);
+                
+                el.innerHTML = `
+                    <div class="grid grid-cols-2 gap-4 fade-in mb-6">
+                        <div class="bg-white p-5 rounded-2xl card-shadow border border-slate-100">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Gross Revenue</p>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-1">$${totalRent.toLocaleString()}</h3>
+                            <p class="text-[10px] text-green-500 font-bold mt-1"><i class="fas fa-arrow-up"></i> This Month</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl card-shadow border border-slate-100">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Occupancy</p>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-1">100%</h3>
+                            <p class="text-[10px] text-blue-500 font-bold mt-1">2 Units</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl card-shadow fade-in">
+                        <h4 class="font-bold text-slate-800 mb-4 text-sm">Property Performance</h4>
+                        <div class="space-y-4">
+                            ${props.map(p => `
+                                <div class="flex items-center justify-between pb-3 border-b border-slate-50 last:border-0">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400"><i class="fas fa-building"></i></div>
+                                        <div>
+                                            <p class="font-bold text-sm text-slate-700">${p.name}</p>
+                                            <p class="text-xs text-slate-400">${p.address}</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs font-bold bg-green-100 text-green-600 px-2 py-1 rounded">Good</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            // Add other Owner views (Finance/Properties) similarly...
+            else {
+                el.innerHTML = `<div class="p-10 text-center text-slate-400 text-sm">Module loading...</div>`;
+            }
+        }
+
+        // --- VENDOR VIEW ENGINE ---
+        function renderVendor(el, view) {
+            // Filter tickets assigned to this vendor
+            const myJobs = Store.data.tickets.filter(t => t.vendorId === Auth.currentUser.id);
+            
+            if(view === 'home') {
+                el.innerHTML = `
+                    <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-lg mb-6 fade-in">
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <p class="text-xs text-slate-400 uppercase font-bold">Active Jobs</p>
+                                <h3 class="text-4xl font-bold mt-1">${myJobs.length}</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-xl shadow-lg shadow-blue-500/50">
+                                <i class="fas fa-tools"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 fade-in">
+                        <h4 class="font-bold text-slate-800 text-sm px-2">Job Queue</h4>
+                        ${myJobs.length ? myJobs.map(t => `
+                            <div class="bg-white p-5 rounded-2xl card-shadow border-l-4 border-blue-500 relative overflow-hidden">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h5 class="font-bold text-slate-800">${t.title}</h5>
+                                    <span class="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-1 rounded uppercase">Open</span>
+                                </div>
+                                <p class="text-xs text-slate-500 mb-4"><i class="fas fa-map-marker-alt mr-1"></i> Unit ${t.unit || 'Unknown'}</p>
+                                <div class="flex gap-2">
+                                    <button onclick="completeJob('${t.id}')" class="flex-1 py-2 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition">Mark Complete</button>
+                                    <button class="px-3 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold"><i class="fas fa-info-circle"></i></button>
+                                </div>
+                            </div>
+                        `).join('') : `<div class="bg-white p-8 rounded-2xl border border-dashed border-slate-300 text-center text-slate-400 text-sm">No jobs assigned yet.</div>`}
+                    </div>
+                `;
+            }
+            // Add History/Profile views...
+            else {
+                el.innerHTML = `<div class="p-10 text-center text-slate-400 text-sm">View not implemented in prototype.</div>`;
+            }
+        }
+
+        // --- ACTIONS & MODALS ---
+        function openTicketModal() {
+            const html = `
+                <div class="bg-white w-full rounded-2xl p-6">
+                    <h3 class="font-bold text-lg text-slate-800 mb-4">Request Service</h3>
+                    <input id="t-title" class="w-full p-3 bg-slate-50 rounded-xl text-sm mb-3 outline-none focus:ring-2 focus:ring-blue-100" placeholder="What's the issue? (e.g. Leaking sink)">
+                    <select id="t-priority" class="w-full p-3 bg-slate-50 rounded-xl text-sm mb-4 outline-none">
+                        <option value="Low">Low Priority</option>
+                        <option value="Medium">Medium Priority</option>
+                        <option value="High">High Priority (Emergency)</option>
+                    </select>
+                    <div class="flex gap-3">
+                        <button onclick="closeModal()" class="flex-1 py-3 text-slate-500 font-bold text-sm">Cancel</button>
+                        <button onclick="submitTicket()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-500/30">Submit</button>
+                    </div>
+                </div>
+            `;
+            showModal(html);
+        }
+
+        function submitTicket() {
+            const title = document.getElementById('t-title').value;
+            const priority = document.getElementById('t-priority').value;
+            
+            if(title) {
+                Store.add('tickets', {
+                    title, 
+                    priority, 
+                    status: 'Open', 
+                    unit: 'My Unit', // Mock context
+                    vendorId: null // Unassigned initially
+                });
+                closeModal();
+                showToast('Request Sent Successfully');
+                renderView('tenant', 'maintenance');
+            }
+        }
+
+        function completeJob(id) {
+            // Find and update ticket status (Mock logic)
+            const ticket = Store.data.tickets.find(t => t.id == id);
+            if(ticket) {
+                ticket.status = 'Resolved';
+                // Trigger Store save if local
+                if(Infrastructure.mode === 'local') localStorage.setItem('z-bridgesERP', JSON.stringify(Store.data));
+                
+                showToast('Job Marked Complete!');
+                renderView('vendor', 'home');
+            }
+        }
+
+        // --- UTILS ---
+        function showModal(html) {
+            const c = document.getElementById('modal-container');
+            c.innerHTML = html;
+            c.classList.remove('hidden');
+            c.classList.add('flex');
+        }
+        function closeModal() {
+            const c = document.getElementById('modal-container');
+            c.classList.add('hidden');
+            c.classList.remove('flex');
+        }
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = msg;
+            t.classList.remove('-translate-y-20', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => t.classList.add('-translate-y-20', 'opacity-0', 'pointer-events-none'), 3000);
+        }
+
     </script>
 </body>
 </html>
