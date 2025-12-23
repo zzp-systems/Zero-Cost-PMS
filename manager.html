@@ -7,131 +7,578 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
+    <!-- Firebase Compat SDKs (Required for Shared Logic) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .fade-in { animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
 <body class="bg-slate-50 h-screen flex overflow-hidden">
 
     <!-- Admin Sidebar -->
-    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col">
-        <div class="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950 font-bold text-white tracking-tight">
-            Z-BRIDGES ADMIN
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-20">
+        <div class="h-16 flex items-center gap-3 px-6 border-b border-slate-800 bg-slate-950">
+            <div class="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center text-white font-bold text-sm">Z</div>
+            <span class="font-bold text-white tracking-tight">Z-BRIDGES ADMIN</span>
         </div>
-        <nav class="flex-1 p-4 space-y-1">
-            <!-- Admin Specific Menu -->
-            <button onclick="router('dashboard')" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white text-sm font-medium"><i class="fas fa-chart-pie w-5"></i> Dashboard</button>
-            <button onclick="router('properties')" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white text-sm font-medium"><i class="fas fa-building w-5"></i> Properties</button>
-            <button onclick="router('crm')" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white text-sm font-medium"><i class="fas fa-users w-5"></i> CRM & Leads</button>
-            <button onclick="router('marketing')" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white text-sm font-medium"><i class="fas fa-bullhorn w-5"></i> Marketing</button>
-            <button onclick="router('finance')" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white text-sm font-medium"><i class="fas fa-wallet w-5"></i> Bookkeeping</button>
-            <button onclick="router('system')" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white text-sm font-medium mt-8"><i class="fas fa-server w-5"></i> System</button>
+        
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <button onclick="router('dashboard')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium group active-nav" data-target="dashboard">
+                <i class="fas fa-chart-pie w-5 text-center group-hover:text-blue-400"></i> Dashboard
+            </button>
+            <button onclick="router('properties')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium group" data-target="properties">
+                <i class="fas fa-building w-5 text-center group-hover:text-blue-400"></i> Properties
+            </button>
+            <button onclick="router('crm')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium group" data-target="crm">
+                <i class="fas fa-users w-5 text-center group-hover:text-blue-400"></i> CRM & Leads
+            </button>
+            <button onclick="router('marketing')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium group" data-target="marketing">
+                <i class="fas fa-bullhorn w-5 text-center group-hover:text-blue-400"></i> Marketing / ILS
+            </button>
+            <button onclick="router('maintenance')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium group" data-target="maintenance">
+                <i class="fas fa-tools w-5 text-center group-hover:text-blue-400"></i> Maintenance
+            </button>
+            <button onclick="router('finance')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium group" data-target="finance">
+                <i class="fas fa-wallet w-5 text-center group-hover:text-blue-400"></i> Bookkeeping
+            </button>
+            <div class="pt-4 mt-4 border-t border-slate-800">
+                <button onclick="router('system')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium group" data-target="system">
+                    <i class="fas fa-server w-5 text-center group-hover:text-green-400"></i> System & Cloud
+                </button>
+            </div>
         </nav>
+
         <div class="p-4 bg-slate-950 border-t border-slate-800 flex items-center gap-3">
-            <div id="user-avatar" class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs text-white font-bold">ZB</div>
-            <div class="text-xs">
-                <p class="text-white font-medium">Administrator</p>
-                <button onclick="Auth.logout()" class="text-slate-500 hover:text-white">Sign out</button>
+            <div id="user-avatar" class="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-xs text-white font-bold shadow-inner">ZB</div>
+            <div class="overflow-hidden">
+                <p class="text-white text-sm font-medium truncate" id="admin-name">Administrator</p>
+                <button onclick="Auth.logout()" class="text-slate-500 text-xs hover:text-red-400 transition flex items-center gap-1">
+                    <i class="fas fa-sign-out-alt"></i> Sign Out
+                </button>
             </div>
         </div>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col">
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8">
-            <h1 id="page-title" class="text-lg font-bold text-slate-800">Overview</h1>
-            <span id="db-status" class="px-2 py-1 rounded text-xs font-bold uppercase bg-slate-100 text-slate-500">Checking...</span>
+    <main class="flex-1 flex flex-col relative bg-slate-50">
+        <!-- Top Header -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-10">
+            <div class="flex items-center gap-4">
+                <h1 id="page-title" class="text-xl font-bold text-slate-800">Dashboard</h1>
+                <!-- Connectivity Status Badge -->
+                <span id="db-status" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-500 border border-slate-200 animate-pulse">
+                    Connecting...
+                </span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="w-9 h-9 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-500 transition relative">
+                    <i class="far fa-bell"></i>
+                    <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                </button>
+            </div>
         </header>
-        <div id="app-content" class="flex-1 overflow-auto p-8">
-            <!-- View Content Injected Here -->
+
+        <!-- Viewport -->
+        <div id="app-content" class="flex-1 overflow-y-auto p-8 relative scroll-smooth">
+            <!-- Dynamic Content Injected Here -->
         </div>
     </main>
 
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 transition-all duration-300 opacity-0 pointer-events-none">
+        <div class="bg-slate-800 text-white px-6 py-3 rounded-lg shadow-2xl flex items-center gap-3">
+            <i class="fas fa-info-circle text-blue-400"></i>
+            <span id="toast-message">Notification</span>
+        </div>
+    </div>
+
+    <!-- UNIVERSAL MODAL -->
+    <div id="modal-container" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 fade-in p-4">
+        <!-- Content injected via JS -->
+    </div>
+
+    <!-- Shared Logic -->
     <script src="js/app.js"></script>
+    
     <script>
-        // Init Logic
-        document.addEventListener('DOMContentLoaded', () => {
-            Auth.guard('admin'); // Kick non-admins
+        // --- INIT & AUTH ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            Auth.guard('admin'); // Enforce Role
             document.getElementById('user-avatar').innerText = Auth.getInitials();
-            router('dashboard'); // Default
+            document.getElementById('admin-name').innerText = Auth.currentUser?.name || 'Admin';
+            
+            // Wait for Store to init before rendering
+            setTimeout(() => router('dashboard'), 500);
         });
 
-        // Router & Render Functions (Simplified from previous prototype)
+        // --- ROUTER ---
         function router(view) {
+            // Update UI State
+            document.querySelectorAll('.nav-item').forEach(el => {
+                if(el.dataset.target === view) {
+                    el.classList.add('bg-slate-800', 'text-white');
+                    el.classList.remove('text-slate-300');
+                } else {
+                    el.classList.remove('bg-slate-800', 'text-white');
+                    el.classList.add('text-slate-300');
+                }
+            });
+
             document.getElementById('page-title').innerText = view.charAt(0).toUpperCase() + view.slice(1);
             const content = document.getElementById('app-content');
-            content.innerHTML = ''; // Clear
+            content.innerHTML = '<div class="flex h-full items-center justify-center text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl"></i></div>';
 
-            if(view === 'dashboard') renderDashboard(content);
-            else if(view === 'crm') renderCRM(content);
-            else if(view === 'marketing') renderMarketing(content);
-            // ... (Add other renderers from previous logic) ...
-            else content.innerHTML = `<div class="text-slate-400">View: ${view}</div>`;
+            // Route Logic
+            setTimeout(() => {
+                switch(view) {
+                    case 'dashboard': renderDashboard(content); break;
+                    case 'properties': renderProperties(content); break;
+                    case 'crm': renderCRM(content); break;
+                    case 'marketing': renderMarketing(content); break;
+                    case 'maintenance': renderMaintenance(content); break;
+                    case 'finance': renderFinance(content); break;
+                    case 'system': renderSystem(content); break;
+                    default: content.innerHTML = `<div class="p-10 text-center text-slate-400">View not found: ${view}</div>`;
+                }
+            }, 200); // Slight delay for transition feel
         }
 
-        // --- RENDERERS (Excerpt) ---
+        // --- UI HELPERS ---
+        const UI = {
+            toast(msg) {
+                const t = document.getElementById('toast');
+                document.getElementById('toast-message').innerText = msg;
+                t.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+                setTimeout(() => t.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none'), 3000);
+            },
+            modal(html) {
+                const c = document.getElementById('modal-container');
+                c.innerHTML = html;
+                c.classList.remove('hidden');
+                c.classList.add('flex');
+            },
+            closeModal() {
+                const c = document.getElementById('modal-container');
+                c.classList.add('hidden');
+                c.classList.remove('flex');
+            }
+        };
+
+        // --- RENDERERS ---
+
         function renderDashboard(el) {
-            const leads = Store.data.leads.length;
+            const leads = Store.data.leads ? Store.data.leads.length : 0;
+            const openTickets = Store.data.tickets ? Store.data.tickets.filter(t => t.status === 'Open').length : 0;
+            const revenue = Store.data.ledger ? Store.data.ledger.filter(l => l.type === 'Credit').reduce((a,b) => a + b.amount, 0) : 0;
+
             el.innerHTML = `
-                <div class="grid grid-cols-3 gap-6">
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <p class="text-xs font-bold text-slate-400 uppercase">Leads</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 fade-in">
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
+                        <div class="flex justify-between items-start">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wide">Total Revenue</p>
+                            <span class="p-1.5 bg-green-100 text-green-600 rounded text-xs"><i class="fas fa-arrow-up"></i> YTD</span>
+                        </div>
+                        <h3 class="text-3xl font-bold text-slate-800">$${revenue.toLocaleString()}</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
+                        <div class="flex justify-between items-start">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wide">Active Leads</p>
+                            <i class="fas fa-users text-blue-200"></i>
+                        </div>
                         <h3 class="text-3xl font-bold text-slate-800">${leads}</h3>
                     </div>
-                    <!-- Add more widgets -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
+                        <div class="flex justify-between items-start">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wide">Open Tickets</p>
+                            <i class="fas fa-tools text-orange-200"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-slate-800 ${openTickets > 0 ? 'text-red-500' : ''}">${openTickets}</h3>
+                    </div>
+                    
+                    <div class="col-span-1 md:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm mt-4">
+                        <h3 class="font-bold text-slate-700 mb-4">Financial Overview</h3>
+                        <canvas id="dashChart" height="120"></canvas>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mt-4">
+                        <h3 class="font-bold text-slate-700 mb-4">Recent Activity</h3>
+                        <ul class="space-y-4">
+                            <li class="text-sm text-slate-500 flex gap-3">
+                                <span class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 text-xs"><i class="fas fa-user-plus"></i></span>
+                                <div><p class="text-slate-800 font-medium">New Lead Captured</p><p class="text-xs">2 mins ago</p></div>
+                            </li>
+                            <li class="text-sm text-slate-500 flex gap-3">
+                                <span class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-500 text-xs"><i class="fas fa-file-invoice-dollar"></i></span>
+                                <div><p class="text-slate-800 font-medium">Rent Payment</p><p class="text-xs">1 hour ago</p></div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            // Simple Chart Render
+            setTimeout(() => {
+                new Chart(document.getElementById('dashChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                        datasets: [{ label: 'Income', data: [12000, 19000, 3000, 5000, 2000, revenue], backgroundColor: '#2563eb', borderRadius: 4 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { display: false } }, x: { grid: { display: false } } } }
+                });
+            }, 100);
+        }
+
+        function renderProperties(el) {
+            const props = Store.data.properties || [];
+            el.innerHTML = `
+                <div class="fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <div><h2 class="text-lg font-bold text-slate-800">Property Portfolio</h2><p class="text-xs text-slate-500">Manage units and assets</p></div>
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2"><i class="fas fa-plus"></i> Add Property</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${props.map(p => `
+                            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition group">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition"><i class="fas fa-home"></i></div>
+                                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase ${p.status === 'Occupied' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}">${p.status}</span>
+                                </div>
+                                <h3 class="font-bold text-slate-800 text-lg mb-1">${p.name}</h3>
+                                <p class="text-sm text-slate-500 mb-4 truncate">${p.address}</p>
+                                <div class="flex justify-between items-center pt-4 border-t border-slate-100">
+                                    <span class="font-mono font-bold text-slate-700">$${p.rent}/mo</span>
+                                    <button class="text-slate-400 hover:text-blue-600"><i class="fas fa-ellipsis-h"></i></button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
             `;
         }
-        
+
         function renderCRM(el) {
-             const leads = Store.data.leads || [];
-             el.innerHTML = `
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-50 border-b border-slate-200">
-                            <tr><th class="p-4">Name</th><th class="p-4">Status</th></tr>
-                        </thead>
-                        <tbody>
-                            ${leads.map(l => `<tr><td class="p-4">${l.name}</td><td class="p-4">${l.status}</td></tr>`).join('')}
-                        </tbody>
-                    </table>
+            const leads = Store.data.leads || [];
+            el.innerHTML = `
+                <div class="fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <div><h2 class="text-lg font-bold text-slate-800">CRM & Leads</h2><p class="text-xs text-slate-500">Track prospective tenants</p></div>
+                        <button onclick="addLeadModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"><i class="fas fa-plus"></i> Add Lead</button>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-bold">
+                                <tr><th class="p-4">Name / Email</th><th class="p-4">Type</th><th class="p-4">Status</th><th class="p-4">Note</th><th class="p-4">Action</th></tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${leads.length ? leads.map(l => `
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="p-4"><p class="font-bold text-slate-700">${l.name}</p><p class="text-slate-400 text-xs">${l.email}</p></td>
+                                        <td class="p-4"><span class="px-2 py-1 rounded bg-slate-100 text-slate-600 text-xs">${l.type}</span></td>
+                                        <td class="p-4"><span class="text-blue-600 font-bold text-xs uppercase">${l.status}</span></td>
+                                        <td class="p-4 text-slate-500 truncate max-w-xs">${l.note}</td>
+                                        <td class="p-4"><button class="text-slate-400 hover:text-blue-600"><i class="fas fa-paper-plane"></i></button></td>
+                                    </tr>
+                                `).join('') : `<tr><td colspan="5" class="p-8 text-center text-slate-400">No leads found.</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-             `;
+            `;
         }
-        
+
+        function renderFinance(el) {
+            const ledger = Store.data.ledger || [];
+            el.innerHTML = `
+                <div class="fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <div><h2 class="text-lg font-bold text-slate-800">Financial Ledger</h2><p class="text-xs text-slate-500">Double-entry bookkeeping</p></div>
+                        <button onclick="addTransactionModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-md flex items-center gap-2"><i class="fas fa-plus"></i> Record Transaction</button>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-bold">
+                                <tr><th class="p-4">Date</th><th class="p-4">Description</th><th class="p-4">Category</th><th class="p-4 text-right">Amount</th></tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${ledger.length ? ledger.map(t => `
+                                    <tr>
+                                        <td class="p-4 font-mono text-slate-500 text-xs">${t.date}</td>
+                                        <td class="p-4 font-medium text-slate-700">${t.desc}</td>
+                                        <td class="p-4"><span class="bg-slate-100 px-2 py-1 rounded text-xs text-slate-600 font-medium">${t.category}</span></td>
+                                        <td class="p-4 text-right font-bold ${t.type==='Debit'?'text-red-500':'text-green-600'}">
+                                            ${t.type==='Debit'?'-':'+'}$${Math.abs(t.amount).toLocaleString()}
+                                        </td>
+                                    </tr>
+                                `).join('') : `<tr><td colspan="4" class="p-8 text-center text-slate-400">No transactions recorded.</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderMaintenance(el) {
+            const tickets = Store.data.tickets || [];
+            el.innerHTML = `
+                <div class="fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <div><h2 class="text-lg font-bold text-slate-800">Maintenance & Ops</h2><p class="text-xs text-slate-500">Track repairs and vendors</p></div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4">
+                        ${tickets.length ? tickets.map(t => `
+                            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-full ${t.priority==='High'?'bg-red-100 text-red-600':'bg-blue-50 text-blue-600'} flex items-center justify-center"><i class="fas fa-tools"></i></div>
+                                    <div>
+                                        <h4 class="font-bold text-slate-800">${t.title}</h4>
+                                        <p class="text-xs text-slate-500">Status: <span class="font-medium text-slate-700">${t.status}</span> • Priority: ${t.priority}</p>
+                                    </div>
+                                </div>
+                                <button class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded font-medium">Manage</button>
+                            </div>
+                        `).join('') : `<div class="p-8 text-center text-slate-400 bg-white rounded-xl border border-slate-200">No active maintenance tickets.</div>`}
+                    </div>
+                </div>
+            `;
+        }
+
         function renderMarketing(el) {
             const listings = Store.data.listings || [];
             el.innerHTML = `
-                <div class="flex justify-between items-center mb-6 fade-in">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-800">Marketing & ILS</h2>
-                        <p class="text-sm text-slate-500">Manage listings and syndicate to Zillow/Trulia</p>
+                <div class="fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <div><h2 class="text-lg font-bold text-slate-800">Marketing & ILS</h2><p class="text-xs text-slate-500">Manage public listings on z-bridges.com</p></div>
+                        <button onclick="addListingModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 flex items-center gap-2 shadow-lg shadow-green-500/30"><i class="fas fa-plus"></i> New Listing</button>
                     </div>
-                    <button class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 shadow-lg shadow-green-500/30 flex items-center gap-2">
-                        <i class="fas fa-plus"></i> Create Listing
-                    </button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 fade-in">
-                    ${listings.map(l => `
-                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition">
-                            <div class="h-48 bg-slate-200 relative">
-                                <span class="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded shadow">PUBLISHED</span>
-                                <div class="absolute inset-0 flex items-center justify-center text-slate-400"><i class="fas fa-image text-4xl"></i></div>
-                                <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/50 to-transparent p-4">
-                                    <h3 class="font-bold text-white text-lg drop-shadow-md">${l.headline}</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        ${listings.map(l => `
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group">
+                                <div class="h-40 bg-slate-200 relative">
+                                    <div class="absolute inset-0 flex items-center justify-center text-slate-400 bg-slate-300"><i class="fas fa-image text-3xl"></i></div>
+                                    <div class="absolute top-2 left-2 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded">LIVE</div>
+                                </div>
+                                <div class="p-4 flex-1">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h3 class="font-bold text-slate-800 truncate">${l.headline}</h3>
+                                        <span class="font-bold text-blue-600">$${l.price}</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500 line-clamp-2">${l.desc}</p>
+                                </div>
+                                <div class="bg-slate-50 px-4 py-2 border-t border-slate-200 flex justify-between items-center text-xs text-slate-500">
+                                    <span><i class="far fa-eye"></i> 124 Views</span>
+                                    <button class="text-red-500 hover:underline">Unpublish</button>
                                 </div>
                             </div>
-                            <div class="p-5 flex-1 flex flex-col">
-                                <div class="flex justify-between items-center mb-3">
-                                    <span class="font-bold text-blue-600 text-lg">$${l.price}</span>
-                                </div>
-                                <p class="text-sm text-slate-500 mb-4 flex-1">${l.desc}</p>
-                            </div>
-                        </div>
-                    `).join('')}
+                        `).join('')}
+                    </div>
                 </div>
             `;
+        }
+
+        function renderSystem(el) {
+            el.innerHTML = `
+                <div class="fade-in max-w-2xl mx-auto">
+                    <div class="mb-6"><h2 class="text-xl font-bold text-slate-800">System Configuration</h2><p class="text-sm text-slate-500">Zero-Cost Infrastructure Settings</p></div>
+                    
+                    <!-- Connectivity Status -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-10 h-10 bg-slate-800 text-white rounded-lg flex items-center justify-center"><i class="fas fa-network-wired"></i></div>
+                            <div>
+                                <h3 class="font-bold text-slate-800">Database Connection</h3>
+                                <p class="text-xs text-slate-500">Current Mode: ${Infrastructure.mode === 'cloud' ? '<span class="text-green-600 font-bold">Cloud (Firebase)</span>' : '<span class="text-orange-500 font-bold">Local Storage</span>'}</p>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg text-xs font-mono text-slate-600 border border-slate-200">
+                            Status: ${Infrastructure.mode === 'cloud' ? 'Connected to zero-cost-pms.firebaseapp.com' : 'Using Browser LocalStorage (Data will persist on this device only)'}
+                        </div>
+                    </div>
+
+                    <!-- GAS Integration -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-10 h-10 bg-green-100 text-green-600 rounded-lg flex items-center justify-center"><i class="fas fa-robot"></i></div>
+                            <div>
+                                <h3 class="font-bold text-slate-800">Automation Webhook</h3>
+                                <p class="text-xs text-slate-500">Google Apps Script URL for Email Notifications</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <input id="gasUrlInput" type="text" value="${Infrastructure.gasUrl}" class="flex-1 text-sm border rounded-lg px-3 py-2 bg-slate-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="https://script.google.com/macros/s/...">
+                            <button onclick="saveGAS()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-700">Save</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- MODAL HANDLERS ---
+        function addLeadModal() {
+            UI.modal(`
+                <div class="bg-white rounded-xl w-full max-w-md overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                        <h3 class="font-bold text-slate-800">New Lead</h3>
+                        <button onclick="UI.closeModal()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <input id="leadName" class="w-full border p-2 rounded-lg text-sm" placeholder="Full Name">
+                        <input id="leadEmail" class="w-full border p-2 rounded-lg text-sm" placeholder="Email Address">
+                        <select id="leadType" class="w-full border p-2 rounded-lg text-sm bg-white">
+                            <option>Tenant Prospect</option><option>Owner Prospect</option>
+                        </select>
+                        <textarea id="leadNote" class="w-full border p-2 rounded-lg text-sm" rows="2" placeholder="Notes..."></textarea>
+                        <div class="flex justify-end pt-2">
+                            <button onclick="saveLead()" class="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md">Save Lead</button>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+
+        function addTransactionModal() {
+            const props = Store.data.properties || [];
+            const options = props.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            
+            UI.modal(`
+                <div class="bg-white rounded-xl w-full max-w-md overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                        <h3 class="font-bold text-slate-800">Record Transaction</h3>
+                        <button onclick="UI.closeModal()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 uppercase">Type</label>
+                                <select id="transType" class="w-full border p-2 rounded-lg text-sm bg-white mt-1">
+                                    <option value="Credit">Credit (Income)</option>
+                                    <option value="Debit">Debit (Expense)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 uppercase">Amount</label>
+                                <input type="number" id="transAmount" class="w-full border p-2 rounded-lg text-sm mt-1" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase">Description</label>
+                            <input type="text" id="transDesc" class="w-full border p-2 rounded-lg text-sm mt-1" placeholder="e.g. Oct Rent">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase">Property</label>
+                            <select id="transProp" class="w-full border p-2 rounded-lg text-sm bg-white mt-1">${options}</select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase">Category</label>
+                            <select id="transCat" class="w-full border p-2 rounded-lg text-sm bg-white mt-1">
+                                <option>Rent</option><option>Maintenance</option><option>Utilities</option><option>Fees</option>
+                            </select>
+                        </div>
+                        <div class="flex justify-end pt-4">
+                            <button onclick="saveTransaction()" class="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md">Record</button>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+
+        function addListingModal() {
+            const props = Store.data.properties || [];
+            const options = props.map(p => `<option value="${p.id}">${p.name} ($${p.rent})</option>`).join('');
+            
+            UI.modal(`
+                <div class="bg-white rounded-xl w-full max-w-md overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                        <h3 class="font-bold text-slate-800">Publish Listing</h3>
+                        <button onclick="UI.closeModal()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <select id="listingProp" class="w-full border p-2 rounded-lg text-sm bg-white">${options}</select>
+                        <input id="listingHead" class="w-full border p-2 rounded-lg text-sm" placeholder="Headline (e.g. Sunny Downtown Loft)">
+                        <textarea id="listingDesc" class="w-full border p-2 rounded-lg text-sm" rows="3" placeholder="Description..."></textarea>
+                        <div class="flex justify-end pt-2">
+                            <button onclick="saveListing()" class="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-green-700 shadow-md">Publish to Site</button>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+
+        // --- DATA SAVERS ---
+        function saveLead() {
+            const name = document.getElementById('leadName').value;
+            const email = document.getElementById('leadEmail').value;
+            const type = document.getElementById('leadType').value;
+            const note = document.getElementById('leadNote').value;
+            
+            if(name) {
+                Store.add('leads', { name, email, type, status: 'New', note });
+                UI.closeModal();
+                UI.toast('Lead Added Successfully');
+                router('crm');
+            }
+        }
+
+        function saveTransaction() {
+            const type = document.getElementById('transType').value;
+            const amount = parseFloat(document.getElementById('transAmount').value);
+            const desc = document.getElementById('transDesc').value;
+            const propId = parseInt(document.getElementById('transProp').value);
+            const category = document.getElementById('transCat').value;
+
+            if(amount && desc) {
+                Store.add('ledger', {
+                    date: new Date().toISOString().split('T')[0],
+                    desc,
+                    amount: type === 'Debit' ? -amount : amount,
+                    type,
+                    category,
+                    propertyId: propId
+                });
+                UI.closeModal();
+                UI.toast('Transaction Recorded');
+                router('finance');
+            }
+        }
+
+        function saveListing() {
+            const propId = document.getElementById('listingProp').value;
+            const headline = document.getElementById('listingHead').value;
+            const desc = document.getElementById('listingDesc').value;
+            const prop = (Store.data.properties || []).find(p => p.id == propId);
+
+            if(headline && prop) {
+                Store.add('listings', { 
+                    propertyId: propId, 
+                    headline, 
+                    desc, 
+                    price: prop.rent, 
+                    published: true 
+                });
+                UI.closeModal();
+                UI.toast('Listing Published Live');
+                router('marketing');
+            }
+        }
+
+        function saveGAS() {
+            const url = document.getElementById('gasUrlInput').value;
+            if(url) {
+                localStorage.setItem('z-bridgesGAS', url);
+                Infrastructure.gasUrl = url;
+                UI.toast('Automation Hook Saved');
+            }
         }
     </script>
 </body>
