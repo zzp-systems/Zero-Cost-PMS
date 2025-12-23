@@ -1,189 +1,163 @@
 /**
- * Z-BRIDGES ZERO-COST PMS - CORE ENGINE
- * Shared logic for Auth, Database, and State Management.
+ * Z-Bridges PMS - Core Application Logic
+ * Architecture: Zero-Cost MPA (Multi-Page Application)
+ * Backend: Firebase (Auth, Firestore)
+ * * SIKLAB NOTE: This file acts as the central nervous system. 
+ * It is imported as a module in every HTML file.
  */
 
+// Import Firebase SDKs (Using CDN for Zero-Cost/No-Build setup)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
+    getAuth, 
+    signInWithEmailAndPassword, 
+    signOut, 
+    onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { 
+    getFirestore, 
+    doc, 
+    getDoc 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
 // --- CONFIGURATION ---
-const APP_CONFIG = {
-    roles: ['admin', 'tenant', 'owner', 'vendor'],
-    routes: {
-        admin: 'manager.html',
-        tenant: 'portal.html',
-        owner: 'portal.html',
-        vendor: 'portal.html',
-        public: 'index.html',
-        login: 'login.html'
-    }
+// Based on Z-Bridges PMS Report ID: 1:60852657304:web:15b5eb4cb417efbde4c4ed
+const firebaseConfig = {
+    apiKey: "AIzaSyBZLVvtDE6_bK_Hiv9fyXhEIEDdeuP5stQ",
+    authDomain: "zero-cost-pms.firebaseapp.com",
+    projectId: "zero-cost-pms",
+    storageBucket: "zero-cost-pms.firebasestorage.app",
+    messagingSenderId: "60852657304", // Inferred from App ID
+    appId: "1:60852657304:web:15b5eb4cb417efbde4c4ed"
 };
 
-// --- 0. CLOUD & HYBRID INFRASTRUCTURE ---
-const Infrastructure = {
-    mode: 'local', // 'local' or 'cloud'
-    db: null,
-    gasUrl: localStorage.getItem('z-bridgesGAS') || '',
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-    init() {
-        // Specific Configuration for Z-Bridges PMS
-        const firebaseConfig = {
-            apiKey: "AIzaSyBZLVvtDE6_bK_Hiv9fyXhEIEDdeuP5stQ",
-            authDomain: "zero-cost-pms.firebaseapp.com",
-            projectId: "zero-cost-pms",
-            storageBucket: "zero-cost-pms.firebasestorage.app",
-            messagingSenderId: "60852657304",
-            appId: "1:60852657304:web:15b5eb4cb417efbde4c4ed",
-            measurementId: "G-0S0M9KKE6G"
-        };
+/**
+ * CORE STATE MANAGEMENT
+ * Simple store pattern to manage UI state
+ */
+const store = {
+    user: null,
+    userRole: null,
+    isLoading: true
+};
 
-        if (typeof firebase !== 'undefined') {
-            try {
-                if (!firebase.apps.length) {
-                    const app = firebase.initializeApp(firebaseConfig);
-                    this.db = firebase.firestore();
-                    this.mode = 'cloud';
-                    console.log("Z-Bridges: Firebase Connected (zero-cost-pms)");
-                    
-                    // Analytics initialization (Optional, only if SDK is present)
-                    if (firebase.analytics) {
-                        firebase.analytics();
-                    }
+/**
+ * AUTHENTICATION FUNCTIONS
+ */
+
+// Login Function
+export async function loginUser(email, password) {
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        // Fetch user profile to get role (assuming 'roles' collection exists)
+        // For prototype, we can infer role from email or claims.
+        // SIKLAB OPTIMIZATION: Using a simple Firestore lookup for role.
+        const role = await getUserRole(user.uid);
+        
+        console.log("Login Successful:", user.email, "Role:", role);
+        
+        // Redirect based on role
+        if (role === 'admin' || role === 'manager') {
+            window.location.href = 'manager.html';
+        } else {
+            window.location.href = 'portal.html';
+        }
+        return { success: true };
+    } catch (error) {
+        console.error("Login Error:", error.code, error.message);
+        return { success: false, message: formatErrorMessage(error.code) };
+    }
+}
+
+// Logout Function
+export async function logoutUser() {
+    try {
+        await signOut(auth);
+        window.location.href = 'index.html';
+    } catch (error) {
+        console.error("Logout Error:", error);
+    }
+}
+
+// Helper: Get User Role (Mock implementation for now if Firestore isn't populated)
+async function getUserRole(uid) {
+    try {
+        const userDoc = await getDoc(doc(db, "users", uid));
+        if (userDoc.exists()) {
+            return userDoc.data().role;
+        } else {
+            // Default fallback for prototype phase
+            return 'user'; 
+        }
+    } catch (e) {
+        console.warn("Role fetch failed, defaulting to user.", e);
+        return 'user';
+    }
+}
+
+// Helper: Format Firebase Error Codes
+function formatErrorMessage(code) {
+    switch (code) {
+        case 'auth/invalid-credential':
+            return "Invalid email or password.";
+        case 'auth/user-not-found':
+            return "No user found with this email.";
+        case 'auth/wrong-password':
+            return "Incorrect password.";
+        case 'auth/too-many-requests':
+            return "Too many attempts. Try again later.";
+        default:
+            return "An unexpected error occurred.";
+    }
+}
+
+/**
+ * AUTH GUARD
+ * Protects pages from unauthorized access.
+ * Usage: Call app.authGuard('admin') at the top of protected pages.
+ */
+export function authGuard(requiredRole = null) {
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            // No user? Go to login.
+            console.warn("Access Denied: No User");
+            window.location.href = 'login.html';
+        } else {
+            // User exists, check role if necessary
+            store.user = user;
+            if (requiredRole) {
+                // In a real app, we await the role fetch here.
+                // For speed in this prototype, we might skip strict RBAC on client side
+                // and rely on Firestore security rules.
+                // But let's do a basic check:
+                const role = await getUserRole(user.uid);
+                if (requiredRole === 'admin' && role !== 'admin' && role !== 'manager') {
+                     console.warn("Access Denied: Insufficient Permissions");
+                     window.location.href = 'portal.html'; // Demote to portal
                 }
-            } catch (e) {
-                console.error("Firebase Init Failed:", e);
-                this.mode = 'local';
             }
+            // If we get here, access is granted.
+            // Initialize Page specific logic
+            document.body.classList.remove('hidden'); // Show body (prevent flash of unauth content)
+            initPageLogic(); 
         }
-        this.updateStatusUI();
-    },
+    });
+}
 
-    updateStatusUI() {
-        const badge = document.getElementById('db-status');
-        if(badge) {
-            if(this.mode === 'cloud') {
-                badge.innerHTML = '<i class="fas fa-cloud"></i> Firebase Live';
-                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-green-100 text-green-700 border border-green-200";
-            } else {
-                badge.innerHTML = '<i class="fas fa-hdd"></i> Local Storage';
-                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-500 border border-slate-200";
-            }
-        }
-    },
-
-    saveCloudConfig(configStr) {
-        // Deprecated: Config is now hardcoded, but kept for GAS URL
-        console.log("Config is hardcoded.");
-    },
-
-    reset() {
-        localStorage.removeItem('z-bridgesFirebaseConfig'); // Cleanup old config
-        location.reload();
+// Generic Page Initializer
+function initPageLogic() {
+    const userDisplay = document.getElementById('user-display');
+    if (userDisplay && store.user) {
+        userDisplay.textContent = store.user.email;
     }
-};
+}
 
-// --- 1. CORE DATA STORE ---
-const Store = {
-    data: {
-        properties: [
-            { id: 1, name: 'Sunset Villa Unit A', address: '123 Sunset Blvd', type: 'Apartment', rent: 1200, status: 'Occupied', ownerId: 101 },
-            { id: 2, name: 'Oak Street House', address: '1024 Oak St', type: 'House', rent: 2400, status: 'Vacant', ownerId: 102 },
-            { id: 3, name: 'TechHub Office 5', address: '500 Main St', type: 'Commercial', rent: 4500, status: 'Occupied', ownerId: 101 }
-        ],
-        users: [
-            { id: 1, name: 'Admin User', role: 'admin', email: 'admin@z-bridges.com', password: 'admin' },
-            { id: 2, name: 'Alice Tenant', role: 'tenant', email: 'alice@mail.com', password: 'user', propertyId: 1 },
-            { id: 3, name: 'Bob Owner', role: 'owner', email: 'bob@investor.com', password: 'user', properties: [1, 3] },
-            { id: 4, name: 'FixIt Vendor', role: 'vendor', email: 'fix@repair.com', password: 'user', skill: 'Plumbing' }
-        ],
-        leads: [],
-        tickets: [],
-        ledger: [],
-        listings: [],
-        kb: [
-            { id: 1, title: 'How to Pay Rent Online', category: 'Tenant', content: 'Go to the Finance tab...' },
-            { id: 2, title: 'Emergency Maintenance', category: 'Employee', content: 'Call 911 for fire...' }
-        ]
-    },
-    
-    async init() {
-        Infrastructure.init();
-        if (Infrastructure.mode === 'local') {
-            const stored = localStorage.getItem('z-bridgesERP');
-            if (stored) this.data = JSON.parse(stored);
-            else this.saveLocal();
-        } else {
-            // In a real app, you'd fetch specific collections here
-            console.log("Cloud Mode Active: Fetching data...");
-        }
-    },
-
-    saveLocal() {
-        localStorage.setItem('z-bridgesERP', JSON.stringify(this.data));
-    },
-
-    // Generic Add
-    async add(collection, item) {
-        item.id = Date.now();
-        if(Infrastructure.mode === 'local') {
-            if(!this.data[collection]) this.data[collection] = [];
-            this.data[collection].push(item);
-            this.saveLocal();
-        } else {
-            try {
-                await Infrastructure.db.collection(collection).add(item);
-                if(!this.data[collection]) this.data[collection] = [];
-                this.data[collection].push(item); // Optimistic UI update
-            } catch(e) { console.error(e); }
-        }
-        return item;
-    }
-};
-
-// --- 2. AUTHENTICATION ---
-const Auth = {
-    currentUser: null,
-
-    // Check if user is allowed on this page
-    guard(requiredRole) {
-        const session = sessionStorage.getItem('z-bridgesSession');
-        if (!session) {
-            window.location.href = APP_CONFIG.routes.login;
-            return;
-        }
-        
-        this.currentUser = JSON.parse(session);
-        
-        // Simple Role Guard
-        if (requiredRole === 'admin' && this.currentUser.role !== 'admin') {
-            alert("Access Denied: Admins Only");
-            window.location.href = APP_CONFIG.routes.tenant; // Fallback
-        }
-    },
-
-    login(email, password) {
-        // 1. Simulate Auth (Replace with Firebase Auth in prod)
-        const user = Store.data.users.find(u => u.email === email && u.password === password);
-        
-        if (user) {
-            sessionStorage.setItem('z-bridgesSession', JSON.stringify(user));
-            // Redirect
-            if (user.role === 'admin') window.location.href = APP_CONFIG.routes.admin;
-            else window.location.href = APP_CONFIG.routes.tenant; // Portals share one file
-        } else {
-            alert("Invalid credentials. Try admin@z-bridges.com / admin");
-        }
-    },
-
-    logout() {
-        sessionStorage.removeItem('z-bridgesSession');
-        window.location.href = APP_CONFIG.routes.login;
-    },
-    
-    // Helper to get initials
-    getInitials() {
-        return this.currentUser ? this.currentUser.name.match(/\b(\w)/g).join('') : '??';
-    }
-};
-
-// Initialize on load
-document.addEventListener('DOMContentLoaded', () => {
-    Store.init();
-});
+// Export auth to window for console debugging if needed
+window.zBridges = { auth, loginUser, logoutUser };
