@@ -1,0 +1,24 @@
+js/config.js
+
+Ignore environment variables if used in future
+
+.env
+
+Ignore Firebase debug logs
+
+firebase-debug.log
+
+--- System Junk ---
+
+.DS_Store
+Thumbs.db
+._*
+
+--- Dependencies & Builds (Future Proofing) ---
+
+If you eventually use Node.js tools
+
+node_modules/
+dist/
+build/
+.cache/
